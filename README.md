@@ -9,10 +9,6 @@ For usage guides, quick starts, and API documentation, see <http://nupic.docs.nu
 
 ### Installation
 
-To install the latest released version from PyPI:
- 
-    pip install nupic.torch
-
 To install from local source code:
     
     python setup.py develop
