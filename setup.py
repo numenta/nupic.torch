@@ -47,7 +47,7 @@ setup(
   long_description=readme,
   long_description_content_type="text/markdown",
   version=nupic.torch.__version__,
-  packages=find_namespace_packages(exclude=["tests"]),
+  packages=find_namespace_packages(exclude=["tests", "examples"]),
   install_requires=requirements,
   python_requires=">=3.6, <4",
   classifiers=[
