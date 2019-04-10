@@ -5,8 +5,6 @@ The Numenta Platform for Intelligent Computing (**NuPIC**) is a machine intellig
 
 This library integrated the principles of HTM into [pytorch](https://pytorch.org/) deep learning platform.
 
-For usage guides, quick starts, and API documentation, see <http://nupic.docs.numenta.org/>.
-
 ### Installation
 
 To install the latest released version from PyPI:
