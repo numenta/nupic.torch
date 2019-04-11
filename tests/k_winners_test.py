@@ -104,7 +104,7 @@ class KWinnersTest(unittest.TestCase):
     self.assertEqual(
       (grad_x[indices] == self.gradient.reshape(-1)[indices]).sum(), 4)
     self.assertAlmostEqual(
-      grad_x.sum(), self.gradient.reshape(-1)[indices].sum(), places=4)
+      grad_x.sum().item(), self.gradient.reshape(-1)[indices].sum().item(), places=4)
     self.assertEqual(len(grad_x.nonzero()), 4)
 
 
