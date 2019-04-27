@@ -23,7 +23,6 @@ import abc
 import numpy as np
 import torch
 import torch.nn as nn
-import torch.nn.functional as F
 
 from nupic.torch.duty_cycle_metrics import maxEntropy, binaryEntropy
 from nupic.torch.functions import k_winners, k_winners2d
@@ -90,11 +89,18 @@ class KWinnersBase(nn.Module):
     self.kInferenceFactor = kInferenceFactor
     self.learningIterations = 0
     self.n = 0
+    self.k = 0
+    self.k_inference = 0
 
     # Boosting related parameters
     self.boostStrength = boostStrength
     self.boostStrengthFactor = boostStrengthFactor
     self.dutyCyclePeriod = dutyCyclePeriod
+
+
+  def extra_repr(self):
+    return 'n={}, percent_on={}, boostStrength={}, dutyCyclePeriod={}'.format(
+      self.n, self.percent_on, self.boostStrength, self.dutyCyclePeriod)
 
 
   def getLearningIterations(self):
@@ -191,11 +197,6 @@ class KWinners(KWinnersBase):
     self.register_buffer("dutyCycle", torch.zeros(self.n))
 
 
-  def extra_repr(self):
-    return 'n={}, k={}, boostStrength={}, dutyCyclePeriod={}'.format(
-      self.n, self.k, self.boostStrength, self.dutyCyclePeriod)
-
-
   def forward(self, x):
 
     if self.training:
@@ -269,22 +270,19 @@ class KWinners2d(KWinnersBase):
     self.register_buffer("dutyCycle", torch.zeros((1, channels, 1, 1)))
 
 
-  def extra_repr(self):
-    return 'percent_on={}, boostStrength={}, dutyCyclePeriod={}'.format(
-      self.percent_on, self.boostStrength, self.dutyCyclePeriod)
-
-
   def forward(self, x):
 
-    self.n = np.prod(x.shape[1:])
+    if self.n == 0:
+      self.n = np.prod(x.shape[1:])
+      self.k = int(round(self.n * self.percent_on))
+      self.k_inference = int(round(self.n * self.percent_on_inference))
+
     if self.training:
-      k = int(round(self.n * self.percent_on))
-      x = k_winners2d.apply(x, self.dutyCycle, k, self.boostStrength)
+      x = k_winners2d.apply(x, self.dutyCycle, self.k, self.boostStrength)
       self.updateDutyCycle(x)
 
     else:
-      k = int(round(self.n * self.percent_on_inference))
-      x = k_winners2d.apply(x, self.dutyCycle, k, self.boostStrength)
+      x = k_winners2d.apply(x, self.dutyCycle, self.k_inference, self.boostStrength)
 
     return x
 
