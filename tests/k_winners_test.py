@@ -253,7 +253,7 @@ class KWinnersTest(unittest.TestCase):
   def testKWinners2dModule(self):
     x = self.x2
 
-    kw = KWinners2d(n=12, k=4, channels=3, kInferenceFactor=0.5,
+    kw = KWinners2d(percent_on=0.333, channels=3, kInferenceFactor=0.5,
                     boostStrength=1.0, boostStrengthFactor=0.5,
                     dutyCyclePeriod=1000)
 

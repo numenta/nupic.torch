@@ -20,6 +20,7 @@
 # ----------------------------------------------------------------------
 import abc
 
+import numpy as np
 import torch
 import torch.nn as nn
 import torch.nn.functional as F
@@ -51,24 +52,22 @@ class KWinnersBase(nn.Module):
   __metaclass__ = abc.ABCMeta
 
 
-  def __init__(self, n, k, kInferenceFactor=1.0, boostStrength=1.0,
+  def __init__(self, percent_on, kInferenceFactor=1.0, boostStrength=1.0,
                boostStrengthFactor=1.0, dutyCyclePeriod=1000):
     """
-    :param n:
-      Number of units
-    :type n: int
-
-    :param k:
-      The activity of the top k units will be allowed to remain, the rest are set
-      to zero
-    :type k: int
+    :param percent_on:
+      The activity of the top k = percent_on * number of input units will be
+      allowed to remain, the rest are set to zero.
+    :type percent_on: float
 
     :param kInferenceFactor:
-      During inference (training=False) we increase k by this factor.
+      During inference (training=False) we increase percent_on by this factor.
+      percent_on * kInferenceFactor must be strictly less than 1.0, ideally much
+      lower than 1.0
     :type kInferenceFactor: float
 
     :param boostStrength:
-      boost strength (0.0 implies no boosting).
+      boost strength (0.0 implies no boosting). Must be >= 0.0
     :type boostStrength: float
 
     :param boostStrengthFactor:
@@ -81,21 +80,21 @@ class KWinnersBase(nn.Module):
     """
     super(KWinnersBase, self).__init__()
     assert (boostStrength >= 0.0)
+    assert (0.0 <= boostStrengthFactor <= 1.0)
+    assert (0.0 < percent_on < 1.0)
+    assert (0.0 < percent_on * kInferenceFactor < 1.0)
 
-    self.n = n
-    self.k = k
+
+    self.percent_on = percent_on
+    self.percent_on_inference = percent_on * kInferenceFactor
     self.kInferenceFactor = kInferenceFactor
     self.learningIterations = 0
+    self.n = 0
 
     # Boosting related parameters
     self.boostStrength = boostStrength
     self.boostStrengthFactor = boostStrengthFactor
     self.dutyCyclePeriod = dutyCyclePeriod
-
-
-  def extra_repr(self):
-    return 'n={}, k={}, boostStrength={}, dutyCyclePeriod={}'.format(
-      self.n, self.k, self.boostStrength, self.dutyCyclePeriod)
 
 
   def getLearningIterations(self):
@@ -129,18 +128,15 @@ class KWinnersBase(nn.Module):
     """
     Returns the current total entropy of this layer
     """
-    if self.k < self.n:
-      _, entropy = binaryEntropy(self.dutyCycle)
-      return entropy
-    else:
-      return 0
+    _, entropy = binaryEntropy(self.dutyCycle)
+    return entropy
 
 
   def maxEntropy(self):
     """
     Returns the maximum total entropy we can expect from this layer
     """
-    return maxEntropy(self.n, self.k)
+    return maxEntropy(self.n, int(self.n * self.percent_on))
 
 
 
@@ -153,20 +149,22 @@ class KWinners(KWinnersBase):
   """
 
 
-  def __init__(self, n, k, kInferenceFactor=1.0, boostStrength=1.0,
+  def __init__(self, n, percent_on, kInferenceFactor=1.0, boostStrength=1.0,
                boostStrengthFactor=1.0, dutyCyclePeriod=1000):
     """
     :param n:
       Number of units
     :type n: int
 
-    :param k:
-      The activity of the top k units will be allowed to remain, the rest are set
-      to zero
-    :type k: int
+    :param percent_on:
+      The activity of the top k = percent_on * n will be allowed to remain, the
+      rest are set to zero.
+    :type percent_on: float
 
     :param kInferenceFactor:
-      During inference (training=False) we increase k by this factor.
+      During inference (training=False) we increase percent_on by this factor.
+      percent_on * kInferenceFactor must be strictly less than 1.0, ideally much
+      lower than 1.0
     :type kInferenceFactor: float
 
     :param boostStrength:
@@ -182,28 +180,29 @@ class KWinners(KWinnersBase):
     :type dutyCyclePeriod: int
     """
 
-    super(KWinners, self).__init__(n=n, k=k,
+    super(KWinners, self).__init__(percent_on=percent_on,
                                    kInferenceFactor=kInferenceFactor,
                                    boostStrength=boostStrength,
                                    boostStrengthFactor=boostStrengthFactor,
                                    dutyCyclePeriod=dutyCyclePeriod)
+    self.n = n
+    self.k = int(round(n * percent_on))
+    self.k_inference = int(self.k * self.kInferenceFactor)
     self.register_buffer("dutyCycle", torch.zeros(self.n))
 
 
+  def extra_repr(self):
+    return 'n={}, k={}, boostStrength={}, dutyCyclePeriod={}'.format(
+      self.n, self.k, self.boostStrength, self.dutyCyclePeriod)
+
+
   def forward(self, x):
-    # Apply k-winner algorithm if k < n, otherwise default to standard RELU
-    if self.k >= self.n:
-      return F.relu(x)
 
     if self.training:
-      k = self.k
-    else:
-      k = min(int(round(self.k * self.kInferenceFactor)), self.n)
-
-    x = k_winners.apply(x, self.dutyCycle, k, self.boostStrength)
-
-    if self.training:
+      x = k_winners.apply(x, self.dutyCycle, self.k, self.boostStrength)
       self.updateDutyCycle(x)
+    else:
+      x = k_winners.apply(x, self.dutyCycle, self.k_inference, self.boostStrength)
 
     return x
 
@@ -218,6 +217,7 @@ class KWinners(KWinnersBase):
 
 
 
+
 class KWinners2d(KWinnersBase):
   """
   Applies K-Winner function to the input tensor
@@ -227,26 +227,24 @@ class KWinners2d(KWinnersBase):
   """
 
 
-  def __init__(self, n, k, channels, kInferenceFactor=1.0, boostStrength=1.0,
-               boostStrengthFactor=1.0, dutyCyclePeriod=1000):
+  def __init__(self, channels, percent_on=0.1, kInferenceFactor=1.0,
+               boostStrength=1.0, boostStrengthFactor=1.0,
+               dutyCyclePeriod=1000):
     """
-
-    :param n:
-      Number of units. Usually the output of the max pool or whichever layer
-      preceding the KWinners2d layer.
-    :type n: int
-
-    :param k:
-      The activity of the top k units will be allowed to remain, the rest are set
-      to zero
-    :type k: int
 
     :param channels:
       Number of channels (filters) in the convolutional layer.
     :type channels: int
 
+    :param percent_on:
+      The activity of the top k = percent_on * number of input units will be
+      allowed to remain, the rest are set to zero.
+    :type percent_on: float
+
     :param kInferenceFactor:
-      During inference (training=False) we increase k by this factor.
+      During inference (training=False) we increase percent_on by this factor.
+      percent_on * kInferenceFactor must be strictly less than 1.0, ideally much
+      lower than 1.0
     :type kInferenceFactor: float
 
     :param boostStrength:
@@ -261,7 +259,7 @@ class KWinners2d(KWinnersBase):
       The period used to calculate duty cycles
     :type dutyCyclePeriod: int
     """
-    super(KWinners2d, self).__init__(n=n, k=k,
+    super(KWinners2d, self).__init__(percent_on=percent_on,
                                      kInferenceFactor=kInferenceFactor,
                                      boostStrength=boostStrength,
                                      boostStrengthFactor=boostStrengthFactor,
@@ -271,20 +269,22 @@ class KWinners2d(KWinnersBase):
     self.register_buffer("dutyCycle", torch.zeros((1, channels, 1, 1)))
 
 
+  def extra_repr(self):
+    return 'percent_on={}, boostStrength={}, dutyCyclePeriod={}'.format(
+      self.percent_on, self.boostStrength, self.dutyCyclePeriod)
+
+
   def forward(self, x):
-    # Apply k-winner algorithm if k < n, otherwise default to standard RELU
-    if self.k >= self.n:
-      return F.relu(x)
 
+    self.n = np.prod(x.shape[1:])
     if self.training:
-      k = self.k
-    else:
-      k = min(int(round(self.k * self.kInferenceFactor)), self.n)
-
-    x = k_winners2d.apply(x, self.dutyCycle, k, self.boostStrength)
-
-    if self.training:
+      k = int(round(self.n * self.percent_on))
+      x = k_winners2d.apply(x, self.dutyCycle, k, self.boostStrength)
       self.updateDutyCycle(x)
+
+    else:
+      k = int(round(self.n * self.percent_on_inference))
+      x = k_winners2d.apply(x, self.dutyCycle, k, self.boostStrength)
 
     return x
 
@@ -304,3 +304,4 @@ class KWinners2d(KWinnersBase):
   def entropy(self):
     entropy = super(KWinners2d, self).entropy()
     return entropy * self.n / self.channels
+
