@@ -303,3 +303,7 @@ class KWinners2d(KWinnersBase):
     entropy = super(KWinners2d, self).entropy()
     return entropy * self.n / self.channels
 
+  def extra_repr(self):
+    return 'channels={}, {}'.format(self.channels,
+                                    super(KWinners2d, self).extra_repr())
+
