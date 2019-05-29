@@ -1,0 +1,68 @@
+# ----------------------------------------------------------------------
+# Numenta Platform for Intelligent Computing (NuPIC)
+# Copyright (C) 2019, Numenta, Inc.  Unless you have an agreement
+# with Numenta, Inc., for a separate license for this software code, the
+# following terms and conditions apply:
+#
+# This program is free software: you can redistribute it and/or modify
+# it under the terms of the GNU Affero Public License version 3 as
+# published by the Free Software Foundation.
+#
+# This program is distributed in the hope that it will be useful,
+# but WITHOUT ANY WARRANTY; without even the implied warranty of
+# MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.
+# See the GNU Affero Public License for more details.
+#
+# You should have received a copy of the GNU Affero Public License
+# along with this program.  If not, see http://www.gnu.org/licenses.
+#
+# http://numenta.org/licenses/
+# ----------------------------------------------------------------------
+
+version: 2
+
+jobs:
+  validate-contributor:
+    machine: true
+    steps:
+      - checkout
+      - run:
+          name: Validate contributor license
+          command: ci/validate-contributor.sh
+
+  build-test-py36:
+    working_directory: ~/nupic.torch
+    docker:
+      - image: circleci/python:3.6
+    steps:
+      - checkout
+      - run:
+          name: Install dependencies
+          command: pip install --user -r requirements.txt
+      - run:
+          name: Run python tests
+          environmen:
+            PYTEST_ADDOPTS: --junitxml=test-results/pytest/results.xml --verbose --boxed
+          command: |
+            mkdir test-results
+            python setup.py test
+      - run:
+          name: Build wheel
+          environment:
+            VERBOSE: 1
+          command: python setup.py bdist_wheel
+      - store_test_results:
+          path: test-results
+      - store_artifacts:
+          path: dist
+
+
+workflows:
+  version: 2
+
+  build-test-py36:
+    jobs:
+      - validate-contributor
+      - build-test-py36:
+          requires:
+            - validate-contributor
