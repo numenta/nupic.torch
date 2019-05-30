@@ -23,65 +23,61 @@ import unittest
 
 import torch
 
-from nupic.torch.duty_cycle_metrics import \
-     binaryEntropy, maxEntropy
+from nupic.torch.duty_cycle_metrics import binary_entropy, max_entropy
 
 
 class DutyCycleMetricsTest(unittest.TestCase):
-  """
-  Simplistic tests of duty cycle entropy metrics
-  """
+    """Simplistic tests of duty cycle entropy metrics."""
 
-  def testBinaryEntropy(self):
+    def testBinaryEntropy(self):
 
-    p = torch.tensor([0.1, 0.02, 0.99, 0.5, 0.75, 0.8, 0.3, 0.4, 0.0, 1.0])
-    entropy, entropySum = binaryEntropy(p)
-    self.assertAlmostEqual(entropySum.item(), 5.076676985, places=4)
-    self.assertAlmostEqual(entropySum.item(), entropy.sum(), places=4)
-    self.assertAlmostEqual(entropy[0].item(), 0.468995594, places=4)
-    self.assertAlmostEqual(entropy[1].item(), 0.141440543, places=4)
-    self.assertAlmostEqual(entropy[2].item(), 0.080793136, places=4)
-    self.assertEqual(entropy[8].item(), 0.0)
-    self.assertEqual(entropy[9].item(), 0.0)
+        p = torch.tensor([0.1, 0.02, 0.99, 0.5, 0.75, 0.8, 0.3, 0.4, 0.0, 1.0])
+        entropy, entropy_sum = binary_entropy(p)
+        self.assertAlmostEqual(entropy_sum.item(), 5.076676985, places=4)
+        self.assertAlmostEqual(entropy_sum.item(), entropy.sum(), places=4)
+        self.assertAlmostEqual(entropy[0].item(), 0.468995594, places=4)
+        self.assertAlmostEqual(entropy[1].item(), 0.141440543, places=4)
+        self.assertAlmostEqual(entropy[2].item(), 0.080793136, places=4)
+        self.assertEqual(entropy[8].item(), 0.0)
+        self.assertEqual(entropy[9].item(), 0.0)
 
-    p = torch.tensor([0.25, 0.25, 0.25, 0.25])
-    entropy, entropySum = binaryEntropy(p)
-    self.assertAlmostEqual(entropySum, 3.245112498, places=4)
-    self.assertAlmostEqual(entropySum, entropy.sum(), places=4)
+        p = torch.tensor([0.25, 0.25, 0.25, 0.25])
+        entropy, entropy_sum = binary_entropy(p)
+        self.assertAlmostEqual(entropy_sum, 3.245112498, places=4)
+        self.assertAlmostEqual(entropy_sum, entropy.sum(), places=4)
 
-    p = torch.tensor([0.5, 0.5, 0.5, 0.5])
-    entropy, entropySum = binaryEntropy(p)
-    self.assertAlmostEqual(entropySum, 4.0, places=4)
-    self.assertAlmostEqual(entropySum, entropy.sum(), places=4)
-    self.assertAlmostEqual(entropy[0], 1.0, places=4)
-    self.assertAlmostEqual(entropy[1], 1.0, places=4)
-    self.assertAlmostEqual(entropy[2], 1.0, places=4)
-    self.assertAlmostEqual(entropy[3], 1.0, places=4)
+        p = torch.tensor([0.5, 0.5, 0.5, 0.5])
+        entropy, entropy_sum = binary_entropy(p)
+        self.assertAlmostEqual(entropy_sum, 4.0, places=4)
+        self.assertAlmostEqual(entropy_sum, entropy.sum(), places=4)
+        self.assertAlmostEqual(entropy[0], 1.0, places=4)
+        self.assertAlmostEqual(entropy[1], 1.0, places=4)
+        self.assertAlmostEqual(entropy[2], 1.0, places=4)
+        self.assertAlmostEqual(entropy[3], 1.0, places=4)
 
+    def testMaxEntropy(self):
 
-  def testMaxEntropy(self):
+        entropy = max_entropy(1, 1)
+        self.assertAlmostEqual(entropy, 0.0, places=4)
 
-    entropy = maxEntropy(1,1)
-    self.assertAlmostEqual(entropy, 0.0, places=4)
+        entropy = max_entropy(1, 0)
+        self.assertAlmostEqual(entropy, 0.0, places=4)
 
-    entropy = maxEntropy(1,0)
-    self.assertAlmostEqual(entropy, 0.0, places=4)
+        entropy = max_entropy(4, 1)
+        self.assertAlmostEqual(entropy, 3.245112498, places=4)
 
-    entropy = maxEntropy(4,1)
-    self.assertAlmostEqual(entropy, 3.245112498, places=4)
+        entropy = max_entropy(4, 2)
+        self.assertAlmostEqual(entropy, 4.0, places=4)
 
-    entropy = maxEntropy(4,2)
-    self.assertAlmostEqual(entropy, 4.0, places=4)
+        entropy = max_entropy(100, 1)
+        self.assertAlmostEqual(entropy, 8.07931359, places=4)
 
-    entropy = maxEntropy(100,1)
-    self.assertAlmostEqual(entropy, 8.07931359, places=4)
+        entropy = max_entropy(100, 10)
+        self.assertAlmostEqual(entropy, 46.89955936, places=4)
 
-    entropy = maxEntropy(100,10)
-    self.assertAlmostEqual(entropy, 46.89955936, places=4)
-
-    entropy = maxEntropy(2048, 40)
-    self.assertAlmostEqual(entropy, 284.2634199, places=4)
+        entropy = max_entropy(2048, 40)
+        self.assertAlmostEqual(entropy, 284.2634199, places=4)
 
 
 if __name__ == "__main__":
-  unittest.main()
+    unittest.main()

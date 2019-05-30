@@ -22,37 +22,91 @@
 version: 2
 
 jobs:
-  validate-contributor:
-    machine: true
-    steps:
-      - checkout
-      - run:
-          name: Validate contributor license
-          command: ci/validate-contributor.sh
 
-  build-test-py36:
+  checkout_code:
     working_directory: ~/nupic.torch
     docker:
       - image: circleci/python:3.6
     steps:
       - checkout
+      - save_cache:
+          key: source-cache-{{ .Environment.CIRCLE_SHA1 }}
+          paths:
+            - ~/nupic.torch
+
+  install_dependencies:
+    working_directory: ~/nupic.torch
+    docker:
+      - image: circleci/python:3.6
+    steps:
+      - restore_cache:
+          key: source-cache-{{ .Environment.CIRCLE_SHA1 }}
+      - restore_cache:
+          key: pip-cache-{{ arch }}-{{ checksum "requirements.txt" }}-{{ checksum "requirements-dev.txt" }}
+      - run: pip install --user -r requirements-dev.txt -r requirements.txt
+      - save_cache:
+          key: pip-cache-{{ arch }}-{{ checksum "requirements.txt" }}-{{ checksum "requirements-dev.txt" }}
+          paths:
+            - ~/.local
+            - ~/.cache
+
+  validate_contributor:
+    working_directory: ~/nupic.torch
+    machine: true
+    steps:
+      - restore_cache:
+          key: source-cache-{{ .Environment.CIRCLE_SHA1 }}
       - run:
-          name: Install dependencies
-          command: pip install --user -r requirements.txt
+          name: Validate contributor license
+          command: ci/validate-contributor.sh
+
+  check_style:
+    working_directory: ~/nupic.torch
+    docker:
+      - image: circleci/python:3.6
+    steps:
+      - restore_cache:
+          key: source-cache-{{ .Environment.CIRCLE_SHA1 }}
+      - restore_cache:
+          key: pip-cache-{{ arch }}-{{ checksum "requirements.txt" }}-{{ checksum "requirements-dev.txt" }}
+      - run:
+          name: Check Style
+          command: |
+            python setup.py develop --user
+            python setup.py flake8
+  test:
+    working_directory: ~/nupic.torch
+    docker:
+      - image: circleci/python:3.6
+    steps:
+      - restore_cache:
+          key: source-cache-{{ .Environment.CIRCLE_SHA1 }}
+      - restore_cache:
+          key: pip-cache-{{ arch }}-{{ checksum "requirements.txt" }}-{{ checksum "requirements-dev.txt" }}
       - run:
           name: Run python tests
-          environmen:
-            PYTEST_ADDOPTS: --junitxml=test-results/pytest/results.xml --verbose --boxed
+          environment:
+            PYTEST_ADDOPTS: --junitxml=test-results/pytest/results.xml --verbose
           command: |
             mkdir test-results
             python setup.py test
+      - store_test_results:
+          path: test-results
+
+  build:
+    working_directory: ~/nupic.torch
+    docker:
+      - image: circleci/python:3.6
+    steps:
+      - restore_cache:
+          key: source-cache-{{ .Environment.CIRCLE_SHA1 }}
+      - restore_cache:
+          key: pip-cache-{{ arch }}-{{ checksum "requirements.txt" }}-{{ checksum "requirements-dev.txt" }}
       - run:
           name: Build wheel
           environment:
             VERBOSE: 1
           command: python setup.py bdist_wheel
-      - store_test_results:
-          path: test-results
       - store_artifacts:
           path: dist
 
@@ -60,9 +114,22 @@ jobs:
 workflows:
   version: 2
 
-  build-test-py36:
+  validate-build-test:
     jobs:
-      - validate-contributor
-      - build-test-py36:
+      - checkout_code
+      - validate_contributor:
           requires:
-            - validate-contributor
+            - checkout_code
+      - install_dependencies:
+          requires:
+            - validate_contributor
+      - check_style:
+          requires:
+            - install_dependencies
+      - test:
+          requires:
+            - install_dependencies
+      - build:
+          requires:
+            - check_style
+            - test
