@@ -5,7 +5,7 @@ Submodules
 ----------
 
 nupic.torch.modules.flatten module
-```````````````````````````````````````
+``````````````````````````````````
 
 .. automodule:: nupic.torch.modules.flatten
     :members:
@@ -13,7 +13,7 @@ nupic.torch.modules.flatten module
     :show-inheritance:
 
 nupic.torch.modules.k\_winners module
-```````````````````````````````````````
+`````````````````````````````````````
 
 .. automodule:: nupic.torch.modules.k_winners
     :members:
@@ -21,7 +21,7 @@ nupic.torch.modules.k\_winners module
     :show-inheritance:
 
 nupic.torch.modules.sparse\_weights module
-```````````````````````````````````````
+``````````````````````````````````````````
 
 .. automodule:: nupic.torch.modules.sparse_weights
     :members:
