@@ -25,8 +25,9 @@ class KWinners(torch.autograd.Function):
     """A simple K-winner take all autograd function for creating layers with
     sparse output.
 
-    .. note::    Code adapted from this excellent tutorial:
-    https://github.com/jcjohnson/pytorch-examples
+    .. note::
+        Code adapted from this excellent tutorial:
+        https://github.com/jcjohnson/pytorch-examples
     """
 
     @staticmethod
@@ -36,22 +37,22 @@ class KWinners(torch.autograd.Function):
         unit to improve their chances of being chosen. This encourages
         participation of more columns in the learning process.
 
-        The boosting function is a curve defined as: boost_factors = exp[ -
-        boost_strength * (duty_cycles - target_density)] Intuitively this means that
-        units that have been active (i.e. in the top-k) at the target activation
-        level have a boost factor of 1, meaning their activity is not boosted.
-        Columns whose duty cycle drops too much below that of their neighbors are
-        boosted depending on how infrequently they have been active. Unit that has
-        been active more than the target activation level have a boost factor below
-        1, meaning their activity is suppressed and they are less likely to be in
-        the top-k.
+        The boosting function is a curve defined as:
+        :math:`boostFactors = \exp(-boostStrength \times (dutyCycles - targetDensity))`.
+        Intuitively this means that units that have been active (i.e. in the top-k)
+        at the target activation level have a boost factor of 1, meaning their
+        activity is not boosted. Columns whose duty cycle drops too much below that
+        of their neighbors are boosted depending on how infrequently they have been
+        active. Unit that has been active more than the target activation level
+        have a boost factor below 1, meaning their activity is suppressed and
+        they are less likely to be in the top-k.
 
         Note that we do not transmit the boosted values. We only use boosting to
         determine the winning units.
 
         The target activation density for each unit is k / number of units. The
         boostFactor depends on the duty_cycles via an exponential function:
-
+        ::
                 boostFactor
                     ^
                     |

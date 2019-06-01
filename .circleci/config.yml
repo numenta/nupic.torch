@@ -25,9 +25,10 @@ jobs:
 
   checkout_code:
     working_directory: ~/nupic.torch
-    docker:
-      - image: circleci/python:3.6
+    machine: true
     steps:
+      - restore_cache:
+          key: source-cache-{{ .Environment.CIRCLE_SHA1 }}
       - checkout
       - save_cache:
           key: source-cache-{{ .Environment.CIRCLE_SHA1 }}

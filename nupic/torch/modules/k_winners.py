@@ -108,7 +108,7 @@ class KWinnersBase(nn.Module, metaclass=abc.ABCMeta):
         updated according to the following formula:
 
         .. math::
-            duty_cycle = \frac{duty_cycle \times \left( period - batchSize \right)
+            dutyCycle = \frac{dutyCycle \times \left( period - batchSize \right)
                                 + newValue}{period}
         :param x:
           Current activity of each unit
