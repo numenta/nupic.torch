@@ -1,0 +1,57 @@
+# Invoke py.test as distutils command
+pytest-runner
+pytest
+
+# Python coding style formatter
+black
+
+# Format docstrings
+docformatter
+
+# Format imports
+isort
+
+# Python Linting tools
+flake8
+
+# Check Python coding style
+flake8-black
+
+# Check forgotten breakpoints
+flake8-breakpoint
+
+# Find likely bugs and design problems
+flake8-bugbear
+
+# Check for python builtins being used as variables or parameters
+flake8-builtins
+
+# Help you write better list/set/dict comprehensions
+flake8-comprehensions
+
+# Checks for copyright notices in all python files
+flake8-copyright
+
+# Check docstrings using pydocstyle conforming to PEP 257
+flake8-docstrings
+
+# Check for FIXME, TODO and other temporary developer notes
+flake8-fixme
+
+# Check for sorted imports
+flake8-isort
+
+# Check for mutable default arguments
+flake8-mutable
+
+# Checks type annotations conforming to PEP 484
+flake8-mypy
+
+# Checks for old string formatting
+flake8-pep3101
+
+# Check for Print statements in python files
+flake8-print
+
+# Check the PEP-8 naming conventions
+pep8-naming

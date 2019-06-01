@@ -1,4 +1,5 @@
-# <img src="http://numenta.org/87b23beb8a4b7dea7d88099bfb28d182.svg" alt="NuPIC Logo" width=100/> nupic.torch
+<img src="http://numenta.org/87b23beb8a4b7dea7d88099bfb28d182.svg" alt="NuPIC Logo" width=100/>
+
 ## Numenta Platform for Intelligent Computing PyTorch libraries
 
 The Numenta Platform for Intelligent Computing (**NuPIC**) is a machine intelligence platform that implements the [HTM learning algorithms](https://numenta.com/resources/papers-videos-and-more/).  For more information, see [numenta.org](http://numenta.org) or the [NuPIC Forum](https://discourse.numenta.org/c/nupic).
