@@ -3,11 +3,11 @@
 
 Contents
 ========
+
 .. toctree::
-   :maxdepth: 1
 
    modules
-
+   license
 
 Indices and tables
 ==================

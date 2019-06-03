@@ -1,11 +1,5 @@
-nupic.torch.functions package
-=============================
-
-Submodules
-----------
-
-nupic.torch.functions.k\_winners module
-```````````````````````````````````````
+nupic.torch.functions
+=====================
 
 .. automodule:: nupic.torch.functions.k_winners
     :members:
