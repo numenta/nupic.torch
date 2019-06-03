@@ -67,7 +67,7 @@ class KWinnersTest(unittest.TestCase):
         self.duty_cycle = torch.zeros((1, 3, 1, 1))
         self.duty_cycle[:] = 1.0 / 3.0
 
-    def testOne(self):
+    def test_one(self):
         """Equal duty cycle, boost factor 0, k=4, batch size 1."""
         x = self.x
 
@@ -105,7 +105,7 @@ class KWinnersTest(unittest.TestCase):
         )
         self.assertEqual(len(grad_x.nonzero()), 4)
 
-    def testTwo(self):
+    def test_two(self):
         """Equal duty cycle, boost factor 0, k=3."""
         x = self.x
 
@@ -142,7 +142,7 @@ class KWinnersTest(unittest.TestCase):
         )
         self.assertEqual(len(grad_x.nonzero()), 3)
 
-    def testThree(self):
+    def test_three(self):
         """Equal duty cycle, boost factor=0, k=4, batch size=2."""
         x = self.x2
 
@@ -178,7 +178,7 @@ class KWinnersTest(unittest.TestCase):
         self.assertEqual((out_grad == in_grad).sum(), 8)
         self.assertEqual(len(out_grad.nonzero()), 8)
 
-    def testFour(self):
+    def test_four(self):
         """Equal duty cycle, boost factor=0, k=3, batch size=2."""
         x = self.x2
 
@@ -212,7 +212,7 @@ class KWinnersTest(unittest.TestCase):
         self.assertEqual((out_grad == in_grad).sum(), 6)
         self.assertEqual(len(out_grad.nonzero()), 6)
 
-    def testKWinners2dModule(self):
+    def test_k_winners2d_module(self):
         x = self.x2
 
         kw = KWinners2d(
