@@ -43,10 +43,11 @@ jobs:
       - restore_cache:
           key: source-cache-{{ .Environment.CIRCLE_SHA1 }}
       - restore_cache:
-          key: pip-cache-{{ arch }}-{{ checksum "requirements.txt" }}-{{ checksum "requirements-dev.txt" }}
+          key: pip-cache-v1-{{ arch }}-{{ checksum "requirements.txt" }}-{{ checksum "requirements-dev.txt" }}
+      - run: pip install --user flake8-formatter-junit-xml
       - run: pip install --user -r requirements-dev.txt -r requirements.txt
       - save_cache:
-          key: pip-cache-{{ arch }}-{{ checksum "requirements.txt" }}-{{ checksum "requirements-dev.txt" }}
+          key: pip-cache-v1-{{ arch }}-{{ checksum "requirements.txt" }}-{{ checksum "requirements-dev.txt" }}
           paths:
             - ~/.local
             - ~/.cache
@@ -69,12 +70,15 @@ jobs:
       - restore_cache:
           key: source-cache-{{ .Environment.CIRCLE_SHA1 }}
       - restore_cache:
-          key: pip-cache-{{ arch }}-{{ checksum "requirements.txt" }}-{{ checksum "requirements-dev.txt" }}
+          key: pip-cache-v1-{{ arch }}-{{ checksum "requirements.txt" }}-{{ checksum "requirements-dev.txt" }}
       - run:
           name: Check Style
           command: |
-            python setup.py develop --user
-            python setup.py flake8
+            mkdir -p test_results/flake8
+            ~/.local/bin/flake8 --show-source --format junit-xml --output-file test_results/flake8/results.xml  nupic tests
+      - store_test_results:
+          path: test_results
+
   test:
     working_directory: ~/nupic.torch
     docker:
@@ -83,16 +87,16 @@ jobs:
       - restore_cache:
           key: source-cache-{{ .Environment.CIRCLE_SHA1 }}
       - restore_cache:
-          key: pip-cache-{{ arch }}-{{ checksum "requirements.txt" }}-{{ checksum "requirements-dev.txt" }}
+          key: pip-cache-v1-{{ arch }}-{{ checksum "requirements.txt" }}-{{ checksum "requirements-dev.txt" }}
       - run:
           name: Run python tests
           environment:
-            PYTEST_ADDOPTS: --junitxml=test-results/pytest/results.xml --verbose
+            PYTEST_ADDOPTS: --junitxml=test_results/pytest/results.xml --verbose
           command: |
-            mkdir test-results
+            mkdir -p test_results/pytest
             python setup.py test
       - store_test_results:
-          path: test-results
+          path: test_results
 
   build:
     working_directory: ~/nupic.torch
@@ -102,7 +106,7 @@ jobs:
       - restore_cache:
           key: source-cache-{{ .Environment.CIRCLE_SHA1 }}
       - restore_cache:
-          key: pip-cache-{{ arch }}-{{ checksum "requirements.txt" }}-{{ checksum "requirements-dev.txt" }}
+          key: pip-cache-v1-{{ arch }}-{{ checksum "requirements.txt" }}-{{ checksum "requirements-dev.txt" }}
       - run:
           name: Build wheel
           environment:

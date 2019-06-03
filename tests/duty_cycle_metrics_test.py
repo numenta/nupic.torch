@@ -29,7 +29,7 @@ from nupic.torch.duty_cycle_metrics import binary_entropy, max_entropy
 class DutyCycleMetricsTest(unittest.TestCase):
     """Simplistic tests of duty cycle entropy metrics."""
 
-    def testBinaryEntropy(self):
+    def test_binary_entropy(self):
 
         p = torch.tensor([0.1, 0.02, 0.99, 0.5, 0.75, 0.8, 0.3, 0.4, 0.0, 1.0])
         entropy, entropy_sum = binary_entropy(p)
@@ -55,7 +55,7 @@ class DutyCycleMetricsTest(unittest.TestCase):
         self.assertAlmostEqual(entropy[2], 1.0, places=4)
         self.assertAlmostEqual(entropy[3], 1.0, places=4)
 
-    def testMaxEntropy(self):
+    def test_max_entropy(self):
 
         entropy = max_entropy(1, 1)
         self.assertAlmostEqual(entropy, 0.0, places=4)
