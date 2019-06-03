@@ -32,13 +32,12 @@ def update_boost_strength(m):
     """Function used to update KWinner modules boost strength after each epoch.
 
     Call using :meth:`torch.nn.Module.apply` after each epoch if required
-    For example: ``m.apply(updateBoostStrength)``
+    For example: ``m.apply(update_boost_strength)``
 
     :param m: KWinner module
     """
     if isinstance(m, KWinnersBase):
-        if m.training:
-            m.boost_strength = m.boost_strength * m.boost_strength_factor
+        m.update_boost_strength()
 
 
 class KWinnersBase(nn.Module, metaclass=abc.ABCMeta):
@@ -110,6 +109,7 @@ class KWinnersBase(nn.Module, metaclass=abc.ABCMeta):
         .. math::
             dutyCycle = \frac{dutyCycle \times \left( period - batchSize \right)
                                 + newValue}{period}
+
         :param x:
           Current activity of each unit
         """

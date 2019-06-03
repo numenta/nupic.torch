@@ -1,5 +1,5 @@
-nupic.torch
-===========
+API
+===
 
 .. toctree::
 
