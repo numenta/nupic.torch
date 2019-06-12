@@ -21,7 +21,7 @@
 # ------------------------------------------------------------------------------
 from os import path
 
-from setuptools import setup
+from setuptools import find_namespace_packages, setup
 
 import nupic.torch
 
@@ -52,7 +52,7 @@ setup(
     long_description=readme,
     long_description_content_type="text/markdown",
     version=nupic.torch.__version__,
-    packages=["nupic"],
+    packages=find_namespace_packages(include=["nupic.*"]),
     install_requires=requirements,
     python_requires=">=3.6, <4",
     classifiers=[
