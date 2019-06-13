@@ -106,6 +106,10 @@ html_show_sourcelink = False
 # -- Extension configuration -------------------------------------------------
 autodoc_member_order = "groupwise"
 autodoc_inherit_docstrings = True
+autodoc_mock_imports = [
+    "numpy",
+    "torch",
+]
 
 # If true, the current module name will be prepended to all description
 # unit titles (such as .. function::).
