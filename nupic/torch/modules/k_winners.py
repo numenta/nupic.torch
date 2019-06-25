@@ -137,9 +137,9 @@ class KWinners(KWinnersBase):
         self,
         n,
         percent_on,
-        k_inference_factor=1.0,
+        k_inference_factor=1.5,
         boost_strength=1.0,
-        boost_strength_factor=1.0,
+        boost_strength_factor=0.9,
         duty_cycle_period=1000,
     ):
         """Applies K-Winner function to the input tensor.
@@ -210,9 +210,9 @@ class KWinners2d(KWinnersBase):
         self,
         channels,
         percent_on=0.1,
-        k_inference_factor=1.0,
+        k_inference_factor=1.5,
         boost_strength=1.0,
-        boost_strength_factor=1.0,
+        boost_strength_factor=0.9,
         duty_cycle_period=1000,
     ):
         """Applies K-Winner function to the input tensor.
