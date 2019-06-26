@@ -95,9 +95,11 @@ class KWinnersBase(nn.Module, metaclass=abc.ABCMeta):
 
     def extra_repr(self):
         return (
-            "n={0}, percent_on={1}, boost_strength={2}, "
-            "duty_cycle_period={3}".format(
-                self.n, self.percent_on, self.boost_strength, self.duty_cycle_period
+            "n={0}, percent_on={1}, boost_strength={2}, boost_strength_factor={3}, "
+            "k_inference_factor={4}, duty_cycle_period={5}".format(
+                self.n, self.percent_on, self.boost_strength,
+                self.boost_strength_factor, self.k_inference_factor,
+                self.duty_cycle_period
             )
         )
 
