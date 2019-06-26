@@ -16,6 +16,11 @@ To run all tests:
 
     python setup.py test
 
+### Examples
+
+We've created a few jupyter notebooks demonstrating how to use **nupic.torch** with standard datasets. You can find these notebooks in the [examples/](examples) directory or if you prefer you can open them in [colab](http://colab.research.google.com/github/numenta/nupic.torch/) and start experimenting. 
+
+
 ### _Having problems?_
 
 For any installation issues, please see our [search our forums](https://discourse.numenta.org/search?q=tag%3Ainstallation%20category%3A10) (post questions there). You can report bugs at https://github.com/numenta/nupic.torch/issues.
