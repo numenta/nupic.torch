@@ -92,7 +92,7 @@ class MNISTSparseCNN(nn.Sequential):
 
             # Classifier
             ("output", nn.Linear(linear_units, 10)),
-            ("softmax", nn.LogSoftmax())
+            ("softmax", nn.LogSoftmax(dim=1))
         ]))
 
 
@@ -166,5 +166,5 @@ class GSCSparseCNN(nn.Sequential):
 
             # Classifier
             ("output", nn.Linear(linear_units, 12)),
-            ("softmax", nn.LogSoftmax())
+            ("softmax", nn.LogSoftmax(dim=1))
         ]))
