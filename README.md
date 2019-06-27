@@ -18,7 +18,7 @@ To run all tests:
 
 ### Examples
 
-We've created a few jupyter notebooks demonstrating how to use **nupic.torch** with standard datasets. You can find these notebooks in the [examples/](examples) directory or if you prefer you can open them in [colab](http://colab.research.google.com/github/numenta/nupic.torch/) and start experimenting. 
+We've created a few jupyter notebooks demonstrating how to use **nupic.torch** with standard datasets. You can find these notebooks in the [examples/](https://github.com/numenta/nupic.torch/tree/master/examples/) directory or if you prefer you can open them in [colab](http://colab.research.google.com/github/numenta/nupic.torch/) and start experimenting. 
 
 
 ### _Having problems?_
