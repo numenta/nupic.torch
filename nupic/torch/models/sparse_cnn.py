@@ -131,7 +131,7 @@ class GSCSparseCNN(nn.Sequential):
         super(GSCSparseCNN, self).__init__(OrderedDict([
             # First Sparse CNN layer
             ("cnn1", nn.Conv2d(1, cnn_out_channels[0], 5)),
-            ("cnn1_batchnorm", nn.BatchNorm2d(cnn_out_channels[0])),
+            ("cnn1_batchnorm", nn.BatchNorm2d(cnn_out_channels[0], affine=False)),
             ("cnn1_maxpool", nn.MaxPool2d(2)),
             ("cnn1_kwinner", KWinners2d(channels=cnn_out_channels[0],
                                         percent_on=cnn_percent_on[0],
@@ -142,7 +142,7 @@ class GSCSparseCNN(nn.Sequential):
 
             # Second Sparse CNN layer
             ("cnn2", nn.Conv2d(cnn_out_channels[0], cnn_out_channels[1], 5)),
-            ("cnn2_batchnorm", nn.BatchNorm2d(cnn_out_channels[1])),
+            ("cnn2_batchnorm", nn.BatchNorm2d(cnn_out_channels[1], affine=False)),
             ("cnn2_maxpool", nn.MaxPool2d(2)),
             ("cnn2_kwinner", KWinners2d(channels=cnn_out_channels[1],
                                         percent_on=cnn_percent_on[1],
@@ -157,6 +157,7 @@ class GSCSparseCNN(nn.Sequential):
             ("linear", SparseWeights(
                 nn.Linear(25 * cnn_out_channels[1], linear_units),
                 weight_sparsity=linear_weight_sparsity)),
+            ("linear_bn", nn.BatchNorm1d(linear_units, affine=False)),
             ("linear_kwinner", KWinners(n=linear_units,
                                         percent_on=linear_percent_on,
                                         k_inference_factor=k_inference_factor,
