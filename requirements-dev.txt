@@ -55,7 +55,8 @@ flake8-comprehensions
 flake8-copyright
 
 # Check docstrings using pydocstyle conforming to PEP 257
-flake8-docstrings
+# FIXME: See  https://gitlab.com/pycqa/flake8-docstrings/issues/36
+# flake8-docstrings
 
 # Check for FIXME, TODO and other temporary developer notes
 flake8-fixme
