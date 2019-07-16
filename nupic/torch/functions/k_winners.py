@@ -1,6 +1,6 @@
 # ----------------------------------------------------------------------
 # Numenta Platform for Intelligent Computing (NuPIC)
-# Copyright (C) 2018, Numenta, Inc.  Unless you have an agreement
+# Copyright (C) 2019, Numenta, Inc.  Unless you have an agreement
 # with Numenta, Inc., for a separate license for this software code, the
 # following terms and conditions apply:
 #
@@ -74,7 +74,7 @@ class KWinners(torch.autograd.Function):
           for the backward pass.
 
         :param x:
-          Current activity of each unit.
+          Current activity of each unit, optionally batched along the 0th dimension.
 
         :param duty_cycles:
           The averaged duty cycle of each unit.
@@ -99,12 +99,10 @@ class KWinners(torch.autograd.Function):
         # Take the boosted version of the input x, find the top k winners.
         # Compute an output that contains the values of x corresponding to the top k
         # boosted values
-        res = torch.zeros_like(x)
         topk, indices = boosted.topk(k, sorted=False)
-        for i in range(x.shape[0]):
-            res[i, indices[i]] = x[i, indices[i]]
-
-        ctx.save_for_backward(indices)
+        mask = torch.zeros_like(x).scatter(-1, indices, 1)
+        res = mask * x
+        ctx.save_for_backward(mask)
         return res
 
     @staticmethod
@@ -112,14 +110,9 @@ class KWinners(torch.autograd.Function):
         """In the backward pass, we set the gradient to 1 for the winning
         units, and 0 for the others.
         """
-        indices, = ctx.saved_tensors
-        grad_x = torch.zeros_like(grad_output, requires_grad=True)
-
-        # Probably a better way to do it, but this is not terrible as it only loops
-        # over the batch size.
-        for i in range(grad_output.size(0)):
-            grad_x[i, indices[i]] = grad_output[i, indices[i]]
-
+        mask, = ctx.saved_tensors
+        grad_x = grad_output * mask
+        grad_x.requires_grad_(True)
         return grad_x, None, None, None
 
 

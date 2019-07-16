@@ -1,6 +1,6 @@
 # ----------------------------------------------------------------------
 # Numenta Platform for Intelligent Computing (NuPIC)
-# Copyright (C) 2018, Numenta, Inc.  Unless you have an agreement
+# Copyright (C) 2019, Numenta, Inc.  Unless you have an agreement
 # with Numenta, Inc., for a separate license for this software code, the
 # following terms and conditions apply:
 #
@@ -23,7 +23,7 @@ import unittest
 import torch
 
 import nupic.torch.functions as F
-from nupic.torch.modules import KWinners2d
+from nupic.torch.modules import KWinners
 
 
 class TestContext(object):
@@ -38,210 +38,102 @@ class KWinnersTest(unittest.TestCase):
     """"""
 
     def setUp(self):
-        # Tests will use 3 filters and image width, height = 2 X 2
 
-        # Batch size 1
-        x = torch.ones((1, 3, 2, 2))
-        x[0, 0, 1, 0] = 1.1
-        x[0, 0, 1, 1] = 1.2
-        x[0, 1, 0, 1] = 1.2
-        x[0, 2, 1, 0] = 1.3
+        # Batch size 2
+        x = torch.ones((2, 7))
+        x[0, 1] = 1.2
+        x[0, 2] = 1.1
+        x[0, 3] = 1.3
+        x[0, 5] = 1.5
+        x[1, 0] = 1.1
+        x[1, 2] = 1.2
+        x[1, 4] = 1.3
+        x[1, 6] = 1.2
         self.x = x
         self.gradient = torch.rand(x.shape)
 
-        # Batch size 2
-        x = torch.ones((2, 3, 2, 2))
-        x[0, 0, 1, 0] = 1.1
-        x[0, 0, 1, 1] = 1.2
-        x[0, 1, 0, 1] = 1.2
-        x[0, 2, 1, 0] = 1.3
-
-        x[1, 0, 0, 0] = 1.4
-        x[1, 1, 0, 0] = 1.5
-        x[1, 1, 0, 1] = 1.6
-        x[1, 2, 1, 1] = 1.7
-        self.x2 = x
-        self.gradient2 = torch.rand(x.shape)
-
         # All equal
-        self.duty_cycle = torch.zeros((1, 3, 1, 1))
+        self.duty_cycle = torch.zeros((2, 7))
         self.duty_cycle[:] = 1.0 / 3.0
 
+        # Batch size 2
+        x2 = torch.ones((2, 6))
+        x2[0, 0] = 1.5
+        x2[0, 2] = 1.1
+        x2[0, 3] = 1.3
+        x2[1, 0] = 1.1
+        x2[1, 2] = 1.2
+        x2[1, 3] = 1.6
+        self.x2 = x2
+
     def test_one(self):
-        """Equal duty cycle, boost factor 0, k=4, batch size 1."""
+        """Equal duty cycle, boost factor 0, k=3, batch size 2."""
         x = self.x
 
         ctx = TestContext()
 
-        result = F.KWinners2d.forward(ctx, x, self.duty_cycle, k=4, boost_strength=0.0)
+        result = F.KWinners.forward(ctx, x, self.duty_cycle, k=3, boost_strength=0.0)
 
         expected = torch.zeros_like(x)
-        expected[0, 0, 1, 0] = 1.1
-        expected[0, 0, 1, 1] = 1.2
-        expected[0, 1, 0, 1] = 1.2
-        expected[0, 2, 1, 0] = 1.3
+        expected[0, 1] = 1.2
+        expected[0, 3] = 1.3
+        expected[0, 5] = 1.5
+        expected[1, 2] = 1.2
+        expected[1, 4] = 1.3
+        expected[1, 6] = 1.2
 
         self.assertEqual(result.shape, expected.shape)
 
         num_correct = (result == expected).sum()
-        self.assertEqual(num_correct, result.reshape(-1).size()[0])
+        self.assertEqual(num_correct, result.numel())
 
-        indices = ctx.saved_tensors[0].reshape(-1)
-        expected_indices = torch.tensor([2, 3, 10, 5])
-        num_correct = (indices == expected_indices).sum()
-        self.assertEqual(num_correct, 4)
+        # Test that mask saved by forward has 1s in the right places
+        mask = ctx.saved_tensors[0]
+        expected_mask = torch.FloatTensor([
+            [0, 1, 0, 1, 0, 1, 0], [0, 0, 1, 0, 1, 0, 1]])
+        self.assertEqual((mask == expected_mask).sum(), mask.numel())
 
-        # Test that gradient values are in the right places, that their sum is
-        # equal, and that they have exactly the right number of nonzeros
-        grad_x, _, _, _ = F.KWinners2d.backward(ctx, self.gradient)
-        grad_x = grad_x.reshape(-1)
-        self.assertEqual(
-            (grad_x[indices] == self.gradient.reshape(-1)[indices]).sum(), 4
-        )
+        # Test that grad_x returned by backwards is equal to the masked
+        # gradients before backward.
+        grad_x, _, _, _ = F.KWinners.backward(ctx, self.gradient)
+
         self.assertAlmostEqual(
             grad_x.sum().item(),
-            self.gradient.reshape(-1)[indices].sum().item(),
+            (mask * self.gradient).sum().item(),
             places=4,
         )
-        self.assertEqual(len(grad_x.nonzero()), 4)
+        self.assertEqual(len(grad_x.nonzero()), len(expected.nonzero()))
 
-    def test_two(self):
-        """Equal duty cycle, boost factor 0, k=3."""
-        x = self.x
-
-        ctx = TestContext()
-
-        result = F.KWinners2d.forward(ctx, x, self.duty_cycle, k=3, boost_strength=0.0)
-
-        expected = torch.zeros_like(x)
-        expected[0, 0, 1, 1] = 1.2
-        expected[0, 1, 0, 1] = 1.2
-        expected[0, 2, 1, 0] = 1.3
-
-        self.assertEqual(result.shape, expected.shape)
-
-        num_correct = (result == expected).sum()
-        self.assertEqual(num_correct, result.reshape(-1).size()[0])
-
-        indices = ctx.saved_tensors[0].reshape(-1)
-        expected_indices = torch.tensor([3, 10, 5])
-        num_correct = (indices == expected_indices).sum()
-        self.assertEqual(num_correct, 3)
-
-        # Test that gradient values are in the right places, that their sum is
-        # equal, and that they have exactly the right number of nonzeros
-        grad_x, _, _, _ = F.KWinners2d.backward(ctx, self.gradient)
-        grad_x = grad_x.reshape(-1)
-        self.assertEqual(
-            (grad_x[indices] == self.gradient.reshape(-1)[indices]).sum(), 3
-        )
-        self.assertAlmostEqual(
-            grad_x.sum().item(),
-            self.gradient.reshape(-1)[indices].sum().item(),
-            places=4,
-        )
-        self.assertEqual(len(grad_x.nonzero()), 3)
-
-    def test_three(self):
-        """Equal duty cycle, boost factor=0, k=4, batch size=2."""
+    def test_k_winners_module(self):
         x = self.x2
 
-        ctx = TestContext()
+        n = 6
 
-        result = F.KWinners2d.forward(ctx, x, self.duty_cycle, k=4, boost_strength=0.0)
-
-        expected = torch.zeros_like(x)
-        expected[0, 0, 1, 0] = 1.1
-        expected[0, 0, 1, 1] = 1.2
-        expected[0, 1, 0, 1] = 1.2
-        expected[0, 2, 1, 0] = 1.3
-        expected[1, 0, 0, 0] = 1.4
-        expected[1, 1, 0, 0] = 1.5
-        expected[1, 1, 0, 1] = 1.6
-        expected[1, 2, 1, 1] = 1.7
-
-        self.assertEqual(result.shape, expected.shape)
-
-        num_correct = (result == expected).sum()
-        self.assertEqual(num_correct, result.reshape(-1).size()[0])
-
-        indices = ctx.saved_tensors[0]
-        expected_indices = torch.tensor([[2, 3, 10, 5], [0, 4, 5, 11]])
-        num_correct = (indices == expected_indices).sum()
-        self.assertEqual(num_correct, 8)
-
-        # Test that gradient values are in the right places, that their sum is
-        # equal, and that they have exactly the right number of nonzeros
-        out_grad, _, _, _ = F.KWinners2d.backward(ctx, self.gradient2)
-        out_grad = out_grad.reshape(2, -1)
-        in_grad = self.gradient2.reshape(2, -1)
-        self.assertEqual((out_grad == in_grad).sum(), 8)
-        self.assertEqual(len(out_grad.nonzero()), 8)
-
-    def test_four(self):
-        """Equal duty cycle, boost factor=0, k=3, batch size=2."""
-        x = self.x2
-
-        ctx = TestContext()
-
-        result = F.KWinners2d.forward(ctx, x, self.duty_cycle, k=3, boost_strength=0.0)
-
-        expected = torch.zeros_like(x)
-        expected[0, 0, 1, 1] = 1.2
-        expected[0, 1, 0, 1] = 1.2
-        expected[0, 2, 1, 0] = 1.3
-        expected[1, 1, 0, 0] = 1.5
-        expected[1, 1, 0, 1] = 1.6
-        expected[1, 2, 1, 1] = 1.7
-
-        self.assertEqual(result.shape, expected.shape)
-
-        num_correct = (result == expected).sum()
-        self.assertEqual(num_correct, result.reshape(-1).size()[0])
-
-        indices = ctx.saved_tensors[0]
-        expected_indices = torch.tensor([[3, 10, 5], [4, 5, 11]])
-        num_correct = (indices == expected_indices).sum()
-        self.assertEqual(num_correct, 6)
-
-        # Test that gradient values are in the right places, that their sum is
-        # equal, and that they have exactly the right number of nonzeros
-        out_grad, _, _, _ = F.KWinners2d.backward(ctx, self.gradient2)
-        out_grad = out_grad.reshape(2, -1)
-        in_grad = self.gradient2.reshape(2, -1)
-        self.assertEqual((out_grad == in_grad).sum(), 6)
-        self.assertEqual(len(out_grad.nonzero()), 6)
-
-    def test_k_winners2d_module(self):
-        x = self.x2
-
-        kw = KWinners2d(
+        kw = KWinners(
+            n,
             percent_on=0.333,
-            channels=3,
-            k_inference_factor=0.5,
             boost_strength=1.0,
             boost_strength_factor=0.5,
             duty_cycle_period=1000,
         )
 
-        expected = torch.zeros_like(x)
-        expected[0, 0, 1, 0] = 1.1
-        expected[0, 0, 1, 1] = 1.2
-        expected[0, 1, 0, 1] = 1.2
-        expected[0, 2, 1, 0] = 1.3
-        expected[1, 0, 0, 0] = 1.4
-        expected[1, 1, 0, 0] = 1.5
-        expected[1, 1, 0, 1] = 1.6
-        expected[1, 2, 1, 1] = 1.7
+        kw.train()  # Testing with mod.training = True
 
+        # Expect 2 winners per batch (33% of 6)
+        expected = torch.zeros_like(x)
+        expected[0, 0] = 1.5
+        expected[0, 3] = 1.3
+        expected[1, 2] = 1.2
+        expected[1, 3] = 1.6
         result = kw(x)
         self.assertEqual(result.shape, expected.shape)
 
         num_correct = (result == expected).sum()
         self.assertEqual(num_correct, result.reshape(-1).size()[0])
 
-        new_duty = torch.tensor([1.5000, 1.5000, 1.0000]) / 4.0
-        diff = (kw.duty_cycle.reshape(-1) - new_duty).abs().sum()
+        new_duty = torch.tensor([1.0, 0, 1.0, 2.000, 0, 0]) / 2.0
+
+        diff = (kw.duty_cycle - new_duty).abs().sum()
         self.assertLessEqual(diff, 0.001)
 
 
