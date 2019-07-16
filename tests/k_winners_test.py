@@ -82,8 +82,6 @@ class KWinnersTest(unittest.TestCase):
         expected[1, 4] = 1.3
         expected[1, 6] = 1.2
 
-        print(result)
-
         self.assertEqual(result.shape, expected.shape)
 
         num_correct = (result == expected).sum()
