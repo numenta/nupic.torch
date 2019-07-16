@@ -120,11 +120,12 @@ class KWinnersTest(unittest.TestCase):
         kw = KWinners(
             n,
             percent_on=0.333,
-            k_inference_factor=0.5,
             boost_strength=1.0,
             boost_strength_factor=0.5,
             duty_cycle_period=1000,
         )
+
+        kw.train()  # Testing with mod.training = True
 
         # Expect 2 winners per batch (33% of 6)
         expected = torch.zeros_like(x)
