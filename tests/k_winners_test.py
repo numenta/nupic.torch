@@ -89,7 +89,8 @@ class KWinnersTest(unittest.TestCase):
 
         # Test that mask saved by forward has 1s in the right places
         mask = ctx.saved_tensors[0]
-        expected_mask = torch.FloatTensor([[0, 1, 0, 1, 0, 1, 0], [0, 0, 1, 0, 1, 0, 1]])
+        expected_mask = torch.FloatTensor([
+            [0, 1, 0, 1, 0, 1, 0], [0, 0, 1, 0, 1, 0, 1]])
         self.assertEqual((mask == expected_mask).sum(), mask.numel())
 
         # Test that grad_x returned by backwards is equal to the masked
