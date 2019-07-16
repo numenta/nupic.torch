@@ -87,27 +87,18 @@ class KWinnersTest(unittest.TestCase):
         num_correct = (result == expected).sum()
         self.assertEqual(num_correct, result.numel())
 
-        indices = ctx.saved_tensors[0]
-        # Saved indices are unsorted
-        sorted1, _ = indices[0].sort()
-        sorted2, _ = indices[1].sort()
-        num_correct1 = (sorted1 == torch.tensor([1, 3, 5])).sum()
-        num_correct2 = (sorted2 == torch.tensor([2, 4, 6])).sum()
+        # Test that mask saved by forward has 1s in the right places
+        mask = ctx.saved_tensors[0]
+        expected_mask = torch.FloatTensor([[0, 1, 0, 1, 0, 1, 0], [0, 0, 1, 0, 1, 0, 1]])
+        self.assertEqual((mask == expected_mask).sum(), mask.numel())
 
-        self.assertEqual(num_correct1, 3)
-        self.assertEqual(num_correct2, 3)
-
-        # Test that gradient values are in the right places, that their sum is
-        # equal, and that they have exactly the right number of nonzeros
+        # Test that grad_x returned by backwards is equal to the masked
+        # gradients before backward.
         grad_x, _, _, _ = F.KWinners.backward(ctx, self.gradient)
-        _grad_x = grad_x.gather(-1, indices)
-        _gradient = self.gradient.gather(-1, indices)
-        self.assertEqual(
-            (_grad_x == _gradient).sum(), 6
-        )
+
         self.assertAlmostEqual(
-            _grad_x.sum().item(),
-            _gradient.sum().item(),
+            grad_x.sum().item(),
+            (mask * self.gradient).sum().item(),
             places=4,
         )
         self.assertEqual(len(grad_x.nonzero()), len(expected.nonzero()))

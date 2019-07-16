@@ -102,7 +102,7 @@ class KWinners(torch.autograd.Function):
         topk, indices = boosted.topk(k, sorted=False)
         mask = torch.zeros_like(x).scatter(-1, indices, 1)
         res = mask * x
-        ctx.save_for_backward(indices)
+        ctx.save_for_backward(mask)
         return res
 
     @staticmethod
@@ -110,10 +110,9 @@ class KWinners(torch.autograd.Function):
         """In the backward pass, we set the gradient to 1 for the winning
         units, and 0 for the others.
         """
-        indices, = ctx.saved_tensors
-        grad_x = torch.zeros_like(grad_output, requires_grad=True)
-        mask = grad_x.scatter(-1, indices, 1)
-        grad_x = mask * grad_output
+        mask, = ctx.saved_tensors
+        grad_x = grad_output * mask
+        grad_x.requires_grad_(True)
         return grad_x, None, None, None
 
 
