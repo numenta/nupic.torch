@@ -15,3 +15,4 @@ Subpackages
 
     nupic.torch.functions
     nupic.torch.modules
+    nupic.torch.models

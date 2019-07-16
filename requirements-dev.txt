@@ -1,3 +1,25 @@
+# ------------------------------------------------------------------------------
+#  Numenta Platform for Intelligent Computing (NuPIC)
+#  Copyright (C) 2019, Numenta, Inc.  Unless you have an agreement
+#  with Numenta, Inc., for a separate license for this software code, the
+#  following terms and conditions apply:
+#
+#  This program is free software: you can redistribute it and/or modify
+#  it under the terms of the GNU Affero Public License version 3 as
+#  published by the Free Software Foundation.
+#
+#  This program is distributed in the hope that it will be useful,
+#  but WITHOUT ANY WARRANTY; without even the implied warranty of
+#  MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.
+#  See the GNU Affero Public License for more details.
+#
+#  You should have received a copy of the GNU Affero Public License
+#  along with this program.  If not, see http://www.gnu.org/licenses.
+#
+#  http://numenta.org/licenses/
+#
+# ------------------------------------------------------------------------------
+
 # Invoke py.test as distutils command
 pytest-runner
 pytest
@@ -33,7 +55,8 @@ flake8-comprehensions
 flake8-copyright
 
 # Check docstrings using pydocstyle conforming to PEP 257
-flake8-docstrings
+# FIXME: See  https://gitlab.com/pycqa/flake8-docstrings/issues/36
+# flake8-docstrings
 
 # Check for FIXME, TODO and other temporary developer notes
 flake8-fixme
@@ -47,11 +70,11 @@ flake8-mutable
 # Checks type annotations conforming to PEP 484
 flake8-mypy
 
-# Checks for old string formatting
-flake8-pep3101
-
 # Check for Print statements in python files
 flake8-print
 
 # Check the PEP-8 naming conventions
 pep8-naming
+
+# Check string quotes
+flake8-quotes

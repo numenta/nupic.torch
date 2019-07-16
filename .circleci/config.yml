@@ -23,13 +23,16 @@ version: 2
 
 jobs:
 
-  checkout_code:
+  validate_contributor:
     working_directory: ~/nupic.torch
     machine: true
     steps:
       - restore_cache:
           key: source-cache-{{ .Environment.CIRCLE_SHA1 }}
       - checkout
+      - run:
+          name: Validate contributor license
+          command: ci/validate-contributor.sh
       - save_cache:
           key: source-cache-{{ .Environment.CIRCLE_SHA1 }}
           paths:
@@ -46,21 +49,12 @@ jobs:
           key: pip-cache-v1-{{ arch }}-{{ checksum "requirements.txt" }}-{{ checksum "requirements-dev.txt" }}
       - run: pip install --user flake8-formatter-junit-xml
       - run: pip install --user -r requirements-dev.txt -r requirements.txt
+      - run: python setup.py install --user
       - save_cache:
           key: pip-cache-v1-{{ arch }}-{{ checksum "requirements.txt" }}-{{ checksum "requirements-dev.txt" }}
           paths:
             - ~/.local
             - ~/.cache
-
-  validate_contributor:
-    working_directory: ~/nupic.torch
-    machine: true
-    steps:
-      - restore_cache:
-          key: source-cache-{{ .Environment.CIRCLE_SHA1 }}
-      - run:
-          name: Validate contributor license
-          command: ci/validate-contributor.sh
 
   check_style:
     working_directory: ~/nupic.torch
@@ -121,10 +115,7 @@ workflows:
 
   validate-build-test:
     jobs:
-      - checkout_code
-      - validate_contributor:
-          requires:
-            - checkout_code
+      - validate_contributor
       - install_dependencies:
           requires:
             - validate_contributor

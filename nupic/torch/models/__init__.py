@@ -1,4 +1,3 @@
-# ------------------------------------------------------------------------------
 #  Numenta Platform for Intelligent Computing (NuPIC)
 #  Copyright (C) 2019, Numenta, Inc.  Unless you have an agreement
 #  with Numenta, Inc., for a separate license for this software code, the
@@ -18,22 +17,5 @@
 #
 #  http://numenta.org/licenses/
 #
-# ------------------------------------------------------------------------------
 
-[build-system]
-requires = ["setuptools>=40.8.0", "wheel"]
-
-[tool.black]
-line-length = 88
-target-version = ["py36", "py37", "py38"]
-include = "\\.pyi?$"
-exclude = """
-/(
-    \\.eggs
-  | \\.git
-  | build
-  | dist
-  | __pycache__
-)/
-"""
-
+from .sparse_cnn import GSCSparseCNN, MNISTSparseCNN

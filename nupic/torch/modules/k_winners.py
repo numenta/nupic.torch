@@ -95,9 +95,11 @@ class KWinnersBase(nn.Module, metaclass=abc.ABCMeta):
 
     def extra_repr(self):
         return (
-            "n={0}, percent_on={1}, boost_strength={2}, "
-            "duty_cycle_period={3}".format(
-                self.n, self.percent_on, self.boost_strength, self.duty_cycle_period
+            "n={0}, percent_on={1}, boost_strength={2}, boost_strength_factor={3}, "
+            "k_inference_factor={4}, duty_cycle_period={5}".format(
+                self.n, self.percent_on, self.boost_strength,
+                self.boost_strength_factor, self.k_inference_factor,
+                self.duty_cycle_period
             )
         )
 
@@ -137,9 +139,9 @@ class KWinners(KWinnersBase):
         self,
         n,
         percent_on,
-        k_inference_factor=1.0,
+        k_inference_factor=1.5,
         boost_strength=1.0,
-        boost_strength_factor=1.0,
+        boost_strength_factor=0.9,
         duty_cycle_period=1000,
     ):
         """Applies K-Winner function to the input tensor.
@@ -210,9 +212,9 @@ class KWinners2d(KWinnersBase):
         self,
         channels,
         percent_on=0.1,
-        k_inference_factor=1.0,
+        k_inference_factor=1.5,
         boost_strength=1.0,
-        boost_strength_factor=1.0,
+        boost_strength_factor=0.9,
         duty_cycle_period=1000,
     ):
         """Applies K-Winner function to the input tensor.

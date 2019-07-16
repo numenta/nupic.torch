@@ -116,6 +116,7 @@ class SparseWeights(SparseWeightsBase):
           Pct of weights that are allowed to be non-zero in the layer.
         """
         super(SparseWeights, self).__init__(module, weight_sparsity)
+        assert isinstance(module, nn.Linear)
 
     def compute_indices(self):
         # For each unit, decide which weights are going to be zero
@@ -153,6 +154,7 @@ class SparseWeights2d(SparseWeightsBase):
           Pct of weights that are allowed to be non-zero in the layer.
         """
         super(SparseWeights2d, self).__init__(module, weight_sparsity)
+        assert isinstance(module, nn.Conv2d)
 
     def compute_indices(self):
         # For each unit, decide which weights are going to be zero

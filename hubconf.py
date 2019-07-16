@@ -18,22 +18,7 @@
 #
 #  http://numenta.org/licenses/
 #
-# ------------------------------------------------------------------------------
+# flake8: noqa F401
+dependencies = ["nupic.torch"]
 
-[build-system]
-requires = ["setuptools>=40.8.0", "wheel"]
-
-[tool.black]
-line-length = 88
-target-version = ["py36", "py37", "py38"]
-include = "\\.pyi?$"
-exclude = """
-/(
-    \\.eggs
-  | \\.git
-  | build
-  | dist
-  | __pycache__
-)/
-"""
-
+from nupic.torch.models import GSCSparseCNN, MNISTSparseCNN
