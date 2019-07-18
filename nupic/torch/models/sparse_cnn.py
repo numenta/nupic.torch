@@ -169,3 +169,20 @@ class GSCSparseCNN(nn.Sequential):
             ("output", nn.Linear(linear_units, 12)),
             ("softmax", nn.LogSoftmax(dim=1))
         ]))
+
+
+class GSCSuperSparseCNN(GSCSparseCNN):
+    """Super Sparse CNN model used to classify `Google Speech Commands`
+    dataset as described in `How Can We Be So Dense?`_ paper.
+    This model provides a sparser version of GSCSparseCNN
+
+    .. _`How Can We Be So Dense?`: https://arxiv.org/abs/1903.11257
+
+    """
+
+    def __init__(self):
+        super(GSCSuperSparseCNN, self).__init__(
+            linear_units=1500,
+            linear_percent_on=0.067,
+            linear_weight_sparsity=0.1,
+        )
