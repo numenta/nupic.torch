@@ -21,4 +21,6 @@
 # flake8: noqa F401
 dependencies = ["nupic.torch"]
 
-from nupic.torch.models import GSCSparseCNN, MNISTSparseCNN
+from nupic.torch.models.sparse_cnn import (
+    gsc_sparse_cnn, gsc_super_sparse_cnn
+)

@@ -20,6 +20,7 @@
 from collections import OrderedDict
 
 from torch import nn
+from torch.hub import load_state_dict_from_url
 
 from nupic.torch.modules import Flatten, KWinners, KWinners2d, SparseWeights
 
@@ -169,3 +170,59 @@ class GSCSparseCNN(nn.Sequential):
             ("output", nn.Linear(linear_units, 12)),
             ("softmax", nn.LogSoftmax(dim=1))
         ]))
+
+
+class GSCSuperSparseCNN(GSCSparseCNN):
+    """Super Sparse CNN model used to classify `Google Speech Commands`
+    dataset as described in `How Can We Be So Dense?`_ paper.
+    This model provides a sparser version of :class:`GSCSparseCNN`
+
+    .. _`How Can We Be So Dense?`: https://arxiv.org/abs/1903.11257
+
+    """
+
+    def __init__(self):
+        super(GSCSuperSparseCNN, self).__init__(
+            linear_units=1500,
+            linear_percent_on=0.067,
+            linear_weight_sparsity=0.1,
+        )
+
+
+MODEL_URLS = {
+    "gsc_sparse_cnn": "https://public.numenta.com/pytorch/hub/gsc_sparse_cnn.1.pth",
+    "gsc_super_sparse_cnn": "https://public.numenta.com/pytorch/hub/gsc_super_sparse_cnn.1.pth",  # noqa E501
+}
+
+
+def gsc_sparse_cnn(pretrained=False, progress=True, **kwargs):
+    """
+    Sparse CNN model used to classify `Google Speech Commands`dataset
+
+    :param pretrained: If True, returns a model pre-trained on Google Speech Commands
+    :param progress: If True, displays a progress bar of the download to stderr
+    :param kwargs: See :class:`GSCSparseCNN`
+    """
+    model = GSCSparseCNN(**kwargs)
+    if pretrained:
+        state_dict = load_state_dict_from_url(MODEL_URLS["gsc_sparse_cnn"],
+                                              progress=progress)
+        model.load_state_dict(state_dict)
+    return model
+
+
+def gsc_super_sparse_cnn(pretrained=False, progress=True):
+    """
+    Super Sparse CNN model used to classify `Google Speech Commands`
+    dataset as described in `How Can We Be So Dense?`_ paper.
+    This model provides a sparser version of :class:`GSCSparseCNN`
+
+    :param pretrained: If True, returns a model pre-trained on Google Speech Commands
+    :param progress: If True, displays a progress bar of the download to stderr
+    """
+    model = GSCSuperSparseCNN()
+    if pretrained:
+        state_dict = load_state_dict_from_url(MODEL_URLS["gsc_super_sparse_cnn"],
+                                              progress=progress)
+        model.load_state_dict(state_dict)
+    return model
