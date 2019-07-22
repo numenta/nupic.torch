@@ -190,8 +190,8 @@ class GSCSuperSparseCNN(GSCSparseCNN):
 
 
 MODEL_URLS = {
-    "gsc_sparse_cnn": "https://public.numenta.com/pytorch/hub/gsc_sparse_cnn.1.pth",
-    "gsc_super_sparse_cnn": "https://public.numenta.com/pytorch/hub/gsc_super_sparse_cnn.1.pth",  # noqa E501
+    "gsc_sparse_cnn": "http://public.numenta.com/pytorch/hub/gsc_sparse_cnn-1de55f1a.pth",
+    "gsc_super_sparse_cnn": "http://public.numenta.com/pytorch/hub/gsc_super_sparse_cnn-da120a32.pth",  # noqa E501
 }
 
 
