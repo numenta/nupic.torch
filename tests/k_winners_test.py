@@ -53,7 +53,7 @@ class KWinnersTest(unittest.TestCase):
         self.gradient = torch.rand(x.shape)
 
         # All equal duty cycle for x.
-        self.duty_cycle = torch.zeros((2, 7))
+        self.duty_cycle = torch.zeros(7)
         self.duty_cycle[:] = 1.0 / 3.0
 
         # Batch size 2
@@ -67,13 +67,13 @@ class KWinnersTest(unittest.TestCase):
         self.x2 = x2
 
         # Unequal duty cycle for x2.
-        duty_cycle2 = torch.zeros((2, 6))
-        duty_cycle2[:, 0] = 1.0 / 2.0
-        duty_cycle2[:, 1] = 1.0 / 4.0
-        duty_cycle2[:, 2] = 1.0 / 2.0
-        duty_cycle2[:, 3] = 1.0 / 4.0
-        duty_cycle2[:, 4] = 1.0 / 2.0
-        duty_cycle2[:, 5] = 1.0 / 4.0
+        duty_cycle2 = torch.zeros(6)
+        duty_cycle2[0] = 1.0 / 2.0
+        duty_cycle2[1] = 1.0 / 4.0
+        duty_cycle2[2] = 1.0 / 2.0
+        duty_cycle2[3] = 1.0 / 4.0
+        duty_cycle2[4] = 1.0 / 2.0
+        duty_cycle2[5] = 1.0 / 4.0
         self.duty_cycle2 = duty_cycle2
 
         # Batch size 2, but with negtive numbers.
@@ -85,11 +85,9 @@ class KWinnersTest(unittest.TestCase):
         self.x3 = x3
 
         # Unequal duty cycle for x3.
-        duty_cycle3 = torch.zeros((2, 6))
-        duty_cycle3[0, 1] = 0.001
-        duty_cycle3[0, 2] = 100
-        duty_cycle3[1, 1] = 100
-        duty_cycle3[1, 2] = 0.001
+        duty_cycle3 = torch.zeros(6)
+        duty_cycle3[1] = 0.001
+        duty_cycle3[2] = 100
         self.duty_cycle3 = duty_cycle3
 
         # Batch size 1.
@@ -105,7 +103,7 @@ class KWinnersTest(unittest.TestCase):
         self.x4 = x4
 
         # All equal duty cycle for x.
-        self.duty_cycle4 = torch.zeros((1, 10))
+        self.duty_cycle4 = torch.zeros(10)
         self.duty_cycle4[:] = 1.0 / 10.0
 
     def test_one(self):
@@ -232,7 +230,7 @@ class KWinnersTest(unittest.TestCase):
         expected = torch.zeros_like(x)
         expected[0, 3] = 1.0
         expected[0, 5] = 1.0
-        expected[1, 3] = 1.0
+        expected[1, 1] = 1.2
         expected[1, 5] = 1.0
 
         for b in range(1, 10):
