@@ -130,7 +130,7 @@ class GSCSparseCNN(nn.Sequential):
                  duty_cycle_period=1000
                  ):
         super(GSCSparseCNN, self).__init__()
-        input_shape = (1, 32, 32)
+        # input_shape = (1, 32, 32)
         # First Sparse CNN layer
         self.add_module("cnn1", nn.Conv2d(1, cnn_out_channels[0], 5))
         self.add_module("cnn1_batchnorm", nn.BatchNorm2d(cnn_out_channels[0],
@@ -164,12 +164,13 @@ class GSCSparseCNN(nn.Sequential):
             nn.Linear(25 * cnn_out_channels[1], linear_units),
             weight_sparsity=linear_weight_sparsity))
         self.add_module("linear_bn", nn.BatchNorm1d(linear_units, affine=False))
-        self.add_module("linear_kwinner", KWinners(n=linear_units,
-                                                   percent_on=linear_percent_on,
-                                                   k_inference_factor=k_inference_factor,
-                                                   boost_strength=boost_strength,
-                                                   boost_strength_factor=boost_strength_factor,
-                                                   duty_cycle_period=duty_cycle_period))
+        self.add_module("linear_kwinner", KWinners(
+            n=linear_units,
+            percent_on=linear_percent_on,
+            k_inference_factor=k_inference_factor,
+            boost_strength=boost_strength,
+            boost_strength_factor=boost_strength_factor,
+            duty_cycle_period=duty_cycle_period))
 
         # Classifier
         self.add_module("output", nn.Linear(linear_units, 12))
@@ -194,8 +195,8 @@ class GSCSuperSparseCNN(GSCSparseCNN):
 
 
 MODEL_URLS = {
-    "gsc_sparse_cnn": "http://public.numenta.com/pytorch/hub/gsc_sparse_cnn-1de55f1a.pth",  # noqa E501
-    "gsc_super_sparse_cnn": "http://public.numenta.com/pytorch/hub/gsc_super_sparse_cnn-da120a32.pth",  # noqa E501
+    "gsc_sparse_cnn": "http://public.numenta.com/pytorch/hub/gsc_sparse_cnn-1de55f1a.pth",  # noqa: E501
+    "gsc_super_sparse_cnn": "http://public.numenta.com/pytorch/hub/gsc_super_sparse_cnn-da120a32.pth",  # noqa: E501
 }
 
 
