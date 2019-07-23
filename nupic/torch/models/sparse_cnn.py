@@ -129,47 +129,52 @@ class GSCSparseCNN(nn.Sequential):
                  k_inference_factor=1.5,
                  duty_cycle_period=1000
                  ):
-        super(GSCSparseCNN, self).__init__(OrderedDict([
-            # First Sparse CNN layer
-            ("cnn1", nn.Conv2d(1, cnn_out_channels[0], 5)),
-            ("cnn1_batchnorm", nn.BatchNorm2d(cnn_out_channels[0], affine=False)),
-            ("cnn1_maxpool", nn.MaxPool2d(2)),
-            ("cnn1_kwinner", KWinners2d(channels=cnn_out_channels[0],
-                                        percent_on=cnn_percent_on[0],
-                                        k_inference_factor=k_inference_factor,
-                                        boost_strength=boost_strength,
-                                        boost_strength_factor=boost_strength_factor,
-                                        duty_cycle_period=duty_cycle_period)),
+        super(GSCSparseCNN, self).__init__()
+        # input_shape = (1, 32, 32)
+        # First Sparse CNN layer
+        self.add_module("cnn1", nn.Conv2d(1, cnn_out_channels[0], 5))
+        self.add_module("cnn1_batchnorm", nn.BatchNorm2d(cnn_out_channels[0],
+                                                         affine=False))
+        self.add_module("cnn1_maxpool", nn.MaxPool2d(2))
+        self.add_module("cnn1_kwinner", KWinners2d(
+            channels=cnn_out_channels[0],
+            percent_on=cnn_percent_on[0],
+            k_inference_factor=k_inference_factor,
+            boost_strength=boost_strength,
+            boost_strength_factor=boost_strength_factor,
+            duty_cycle_period=duty_cycle_period))
 
-            # Second Sparse CNN layer
-            ("cnn2", nn.Conv2d(cnn_out_channels[0], cnn_out_channels[1], 5)),
-            ("cnn2_batchnorm", nn.BatchNorm2d(cnn_out_channels[1], affine=False)),
-            ("cnn2_maxpool", nn.MaxPool2d(2)),
-            ("cnn2_kwinner", KWinners2d(channels=cnn_out_channels[1],
-                                        percent_on=cnn_percent_on[1],
-                                        k_inference_factor=k_inference_factor,
-                                        boost_strength=boost_strength,
-                                        boost_strength_factor=boost_strength_factor,
-                                        duty_cycle_period=duty_cycle_period)),
+        # Second Sparse CNN layer
+        self.add_module("cnn2", nn.Conv2d(cnn_out_channels[0], cnn_out_channels[1], 5))
+        self.add_module("cnn2_batchnorm",
+                        nn.BatchNorm2d(cnn_out_channels[1], affine=False))
+        self.add_module("cnn2_maxpool", nn.MaxPool2d(2))
+        self.add_module("cnn2_kwinner", KWinners2d(
+            channels=cnn_out_channels[1],
+            percent_on=cnn_percent_on[1],
+            k_inference_factor=k_inference_factor,
+            boost_strength=boost_strength,
+            boost_strength_factor=boost_strength_factor,
+            duty_cycle_period=duty_cycle_period))
 
-            ("flatten", Flatten()),
+        self.add_module("flatten", Flatten())
 
-            # Sparse Linear layer
-            ("linear", SparseWeights(
-                nn.Linear(25 * cnn_out_channels[1], linear_units),
-                weight_sparsity=linear_weight_sparsity)),
-            ("linear_bn", nn.BatchNorm1d(linear_units, affine=False)),
-            ("linear_kwinner", KWinners(n=linear_units,
-                                        percent_on=linear_percent_on,
-                                        k_inference_factor=k_inference_factor,
-                                        boost_strength=boost_strength,
-                                        boost_strength_factor=boost_strength_factor,
-                                        duty_cycle_period=duty_cycle_period)),
+        # Sparse Linear layer
+        self.add_module("linear", SparseWeights(
+            nn.Linear(25 * cnn_out_channels[1], linear_units),
+            weight_sparsity=linear_weight_sparsity))
+        self.add_module("linear_bn", nn.BatchNorm1d(linear_units, affine=False))
+        self.add_module("linear_kwinner", KWinners(
+            n=linear_units,
+            percent_on=linear_percent_on,
+            k_inference_factor=k_inference_factor,
+            boost_strength=boost_strength,
+            boost_strength_factor=boost_strength_factor,
+            duty_cycle_period=duty_cycle_period))
 
-            # Classifier
-            ("output", nn.Linear(linear_units, 12)),
-            ("softmax", nn.LogSoftmax(dim=1))
-        ]))
+        # Classifier
+        self.add_module("output", nn.Linear(linear_units, 12))
+        self.add_module("softmax", nn.LogSoftmax(dim=1))
 
 
 class GSCSuperSparseCNN(GSCSparseCNN):
@@ -190,8 +195,8 @@ class GSCSuperSparseCNN(GSCSparseCNN):
 
 
 MODEL_URLS = {
-    "gsc_sparse_cnn": "https://public.numenta.com/pytorch/hub/gsc_sparse_cnn.1.pth",
-    "gsc_super_sparse_cnn": "https://public.numenta.com/pytorch/hub/gsc_super_sparse_cnn.1.pth",  # noqa E501
+    "gsc_sparse_cnn": "http://public.numenta.com/pytorch/hub/gsc_sparse_cnn-1de55f1a.pth",  # noqa: E501
+    "gsc_super_sparse_cnn": "http://public.numenta.com/pytorch/hub/gsc_super_sparse_cnn-da120a32.pth",  # noqa: E501
 }
 
 
