@@ -2,7 +2,7 @@
 
 The Numenta Platform for Intelligent Computing (**NuPIC**) is a machine intelligence platform that implements the [HTM learning algorithms](https://numenta.com/resources/papers-videos-and-more/).  For more information, see [numenta.org](http://numenta.org) or [HTM Forum](https://discourse.numenta.org/c/engineering/machine-learning).
 
-This library integrates selected neuroscience principles from HTM into the [pytorch](https://pytorch.org/) deep learning platform.
+This library integrates selected neuroscience principles from HTM into the [pytorch](https://pytorch.org/) deep learning platform. The current code aims to replicate how sparsity is enforced via Spatial Pooling, as defined in the paper [*How Could We Be So Dense? The Benefits of Using Highly Sparse Representations*](https://arxiv.org/abs/1903.11257).
 
 ### Installation
 
