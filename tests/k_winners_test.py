@@ -140,8 +140,8 @@ class KWinnersTest(unittest.TestCase):
         grad_x, _, _, _ = F.KWinners.backward(ctx, self.gradient)
         self.assertTrue(grad_x.allclose(mask * self.gradient, rtol=0))
 
-        # Test forward again with boost factor from 1 to 10. Should give save result with
-        # an all equal duty cycle.
+        # Test forward again with boost factor from 1 to 10. Should give save result
+        # with an all equal duty cycle.
         for b in range(1, 10):
 
             result = F.KWinners.forward(ctx, x, self.duty_cycle, k=3, boost_strength=b)
