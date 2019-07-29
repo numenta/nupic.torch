@@ -274,7 +274,7 @@ class KWinnersTest(unittest.TestCase):
         self.assertEqual(result.shape, expected.shape)
         self.assertTrue(result.eq(expected).all())
 
-    def test_k_winners_module(self):
+    def test_k_winners_module_one(self):
 
         # Set up test input and module.
         x = self.x2
@@ -300,6 +300,13 @@ class KWinnersTest(unittest.TestCase):
         expected[1, 0] = 1.1
         expected[1, 2] = 1.2
         expected[1, 3] = 1.6
+        result = kw(x)
+
+        self.assertEqual(result.shape, expected.shape)
+        self.assertTrue(result.eq(expected).all())
+
+        # Run forward pass again while still not in training mode.
+        # Should give the same result as the duty cycles are not updated.
         result = kw(x)
 
         self.assertEqual(result.shape, expected.shape)
@@ -335,6 +342,44 @@ class KWinnersTest(unittest.TestCase):
 
         self.assertEqual(result.shape, expected.shape)
         self.assertTrue(result.eq(expected).all())
+
+    def test_k_winners_module_two(self):
+        """
+        Test a series of calls on the layer in training mode.
+        """
+
+        # Set up test input and module.
+        x = self.x2
+        n = 6
+
+        expected = torch.zeros_like(x)
+        expected[0, 0] = 1.5
+        expected[0, 5] = 1.0
+        expected[1, 2] = 1.2
+        expected[1, 3] = 1.6
+
+        kw = KWinners(
+            n,
+            percent_on=0.333,
+            k_inference_factor=1.5,
+            boost_strength=1.0,
+            boost_strength_factor=0.5,
+            duty_cycle_period=1000,
+        )
+
+        kw.train(mode=True)
+        result = kw(x)
+        result = kw(x)
+        result = kw(x)
+        result = kw(x)
+        result = kw(x)
+        result = kw(x)
+        result = kw(x)
+
+        self.assertTrue(result.eq(expected).all())
+
+        # Test with mod.training = False.
+        kw.train(mode=False)
 
 
 if __name__ == "__main__":
