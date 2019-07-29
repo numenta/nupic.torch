@@ -18,6 +18,6 @@
 #
 # http://numenta.org/licenses/
 # ----------------------------------------------------------------------
-from .flatten import *
-from .k_winners import *
-from .sparse_weights import *
+from .flatten import Flatten
+from .k_winners import KWinners, KWinners2d
+from .sparse_weights import SparseWeights, SparseWeights2d

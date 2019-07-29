@@ -18,4 +18,4 @@
 #
 # http://numenta.org/licenses/
 # ----------------------------------------------------------------------
-from .k_winners import *
+from .k_winners import KWinners, KWinners2d
