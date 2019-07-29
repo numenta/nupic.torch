@@ -224,9 +224,9 @@ class KWinnersTest(unittest.TestCase):
         self.assertEqual(result.shape, expected.shape)
         self.assertTrue(result.eq(expected).all())
 
-        # Test forward again with boost factor from 1 to 10. Should yield the same result
-        # as the negative numbers will never be in the top k and the non-one values
-        # have very large duty cycles.
+        # Test forward again with boost factor from 1 to 10. Should yield the same
+        # result as the negative numbers will never be in the top k and the non-one
+        # values have very large duty cycles.
         expected = torch.zeros_like(x)
         expected[0, 3] = 1.0
         expected[0, 5] = 1.0
