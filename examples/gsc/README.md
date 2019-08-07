@@ -25,7 +25,7 @@ python run_gsc_model.py
 
 ### Option 2: Process the raw wav files
 
-Download size: 1.5 GB
+Download size: 1.5 GB \
 Data preparation time: ~2 minutes on fast-compute machine
 
 ```
