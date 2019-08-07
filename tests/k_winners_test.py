@@ -76,7 +76,7 @@ class KWinnersTest(unittest.TestCase):
         duty_cycle2[5] = 1.0 / 4.0
         self.duty_cycle2 = duty_cycle2
 
-        # Batch size 2, but with negtive numbers.
+        # Batch size 2, but with negative numbers.
         x3 = torch.ones((2, 6))
         x3[0, 1] = -1.2
         x3[0, 2] = 1.2
@@ -115,7 +115,7 @@ class KWinnersTest(unittest.TestCase):
         x = self.x
         ctx = TestContext()
 
-        # Test foward with boost factor of 0.
+        # Test forward with boost factor of 0.
         result = F.KWinners.forward(ctx, x, self.duty_cycle, k=3, boost_strength=0.0)
 
         expected = torch.zeros_like(x)
@@ -140,8 +140,8 @@ class KWinnersTest(unittest.TestCase):
         grad_x, _, _, _ = F.KWinners.backward(ctx, self.gradient)
         self.assertTrue(grad_x.allclose(mask * self.gradient, rtol=0))
 
-        # Test foward again with boost factor from 1 to 10. Should give save result with
-        # an all equal duty cycle.
+        # Test forward again with boost factor from 1 to 10. Should give save result
+        # with an all equal duty cycle.
         for b in range(1, 10):
 
             result = F.KWinners.forward(ctx, x, self.duty_cycle, k=3, boost_strength=b)
@@ -158,7 +158,7 @@ class KWinnersTest(unittest.TestCase):
         x = self.x2
         ctx = TestContext()
 
-        # Test foward with boost factor of 0.
+        # Test forward with boost factor of 0.
         result = F.KWinners.forward(ctx, x, self.duty_cycle2, k=3, boost_strength=0.0)
 
         expected = torch.zeros_like(x)
@@ -172,7 +172,7 @@ class KWinnersTest(unittest.TestCase):
         self.assertEqual(result.shape, expected.shape)
         self.assertTrue(result.eq(expected).all())
 
-        # Test foward again with boost factor of 1.
+        # Test forward again with boost factor of 1.
         result = F.KWinners.forward(ctx, x, self.duty_cycle2, k=3, boost_strength=1.0)
 
         expected = torch.zeros_like(x)
@@ -186,7 +186,7 @@ class KWinnersTest(unittest.TestCase):
         self.assertEqual(result.shape, expected.shape)
         self.assertTrue(result.eq(expected).all())
 
-        # Test foward again with boost factor from 2 to 10. Should give save result
+        # Test forward again with boost factor from 2 to 10. Should give save result
         # given the differing duty cycles.
         expected = torch.zeros_like(x)
         expected[0, 1] = 1.0
@@ -212,7 +212,7 @@ class KWinnersTest(unittest.TestCase):
         x = self.x3
         ctx = TestContext()
 
-        # Test foward with boost factor of 0.
+        # Test forward with boost factor of 0.
         result = F.KWinners.forward(ctx, x, self.duty_cycle3, k=2, boost_strength=0.0)
 
         expected = torch.zeros_like(x)
@@ -224,9 +224,9 @@ class KWinnersTest(unittest.TestCase):
         self.assertEqual(result.shape, expected.shape)
         self.assertTrue(result.eq(expected).all())
 
-        # Test foward again with boost factor from 1 to 10. Should yield the same result
-        # as the negative numbers will never be in the top k and the non-one values
-        # have very large duty cycles.
+        # Test forward again with boost factor from 1 to 10. Should yield the same
+        # result as the negative numbers will never be in the top k and the non-one
+        # values have very large duty cycles.
         expected = torch.zeros_like(x)
         expected[0, 3] = 1.0
         expected[0, 5] = 1.0
@@ -249,7 +249,7 @@ class KWinnersTest(unittest.TestCase):
         x = self.x4
         ctx = TestContext()
 
-        # Test foward with boost factor of 1 and k=0.
+        # Test forward with boost factor of 1 and k=0.
         result = F.KWinners.forward(ctx, x, self.duty_cycle4, k=0, boost_strength=1)
 
         expected = torch.zeros_like(x)
@@ -257,7 +257,7 @@ class KWinnersTest(unittest.TestCase):
         self.assertEqual(result.shape, expected.shape)
         self.assertTrue(result.eq(expected).all())
 
-        # Test foward with boost factor of 1 and k=1.
+        # Test forward with boost factor of 1 and k=1.
         result = F.KWinners.forward(ctx, x, self.duty_cycle4, k=1, boost_strength=1)
 
         expected = torch.zeros_like(x)
@@ -266,7 +266,7 @@ class KWinnersTest(unittest.TestCase):
         self.assertEqual(result.shape, expected.shape)
         self.assertTrue(result.eq(expected).all())
 
-        # Test foward with boost factor of 1 and k=1.
+        # Test forward with boost factor of 1 and k=1.
         result = F.KWinners.forward(ctx, x, self.duty_cycle4, k=10, boost_strength=1)
 
         expected = x.clone().detach()
@@ -274,7 +274,7 @@ class KWinnersTest(unittest.TestCase):
         self.assertEqual(result.shape, expected.shape)
         self.assertTrue(result.eq(expected).all())
 
-    def test_k_winners_module(self):
+    def test_k_winners_module_one(self):
 
         # Set up test input and module.
         x = self.x2
@@ -305,6 +305,13 @@ class KWinnersTest(unittest.TestCase):
         self.assertEqual(result.shape, expected.shape)
         self.assertTrue(result.eq(expected).all())
 
+        # Run forward pass again while still not in training mode.
+        # Should give the same result as the duty cycles are not updated.
+        result = kw(x)
+
+        self.assertEqual(result.shape, expected.shape)
+        self.assertTrue(result.eq(expected).all())
+
         # Test with mod.training = True
         kw.train(mode=True)
 
@@ -324,7 +331,7 @@ class KWinnersTest(unittest.TestCase):
 
         self.assertTrue(kw.duty_cycle.eq(new_duty).all())
 
-        # Test foward with updated duty cycle.
+        # Test forward with updated duty cycle.
         result = kw(x)
 
         expected = torch.zeros_like(x)
@@ -335,6 +342,44 @@ class KWinnersTest(unittest.TestCase):
 
         self.assertEqual(result.shape, expected.shape)
         self.assertTrue(result.eq(expected).all())
+
+    def test_k_winners_module_two(self):
+        """
+        Test a series of calls on the layer in training mode.
+        """
+
+        # Set up test input and module.
+        x = self.x2
+        n = 6
+
+        expected = torch.zeros_like(x)
+        expected[0, 0] = 1.5
+        expected[0, 5] = 1.0
+        expected[1, 2] = 1.2
+        expected[1, 3] = 1.6
+
+        kw = KWinners(
+            n,
+            percent_on=0.333,
+            k_inference_factor=1.5,
+            boost_strength=1.0,
+            boost_strength_factor=0.5,
+            duty_cycle_period=1000,
+        )
+
+        kw.train(mode=True)
+        result = kw(x)
+        result = kw(x)
+        result = kw(x)
+        result = kw(x)
+        result = kw(x)
+        result = kw(x)
+        result = kw(x)
+
+        self.assertTrue(result.eq(expected).all())
+
+        # Test with mod.training = False.
+        kw.train(mode=False)
 
 
 if __name__ == "__main__":
