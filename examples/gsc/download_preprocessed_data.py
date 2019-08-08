@@ -26,6 +26,7 @@ Download preprocessed Google Speech Commands dataset
 import math
 import os
 from pathlib import Path
+import shutil
 
 import requests
 from tqdm import tqdm
@@ -54,6 +55,7 @@ def download_files():
     for filename in FILES:
         url = "{}/{}".format(URL_BASE, filename)
         localpath = DATAPATH/filename
+        tmppath = str(localpath) + ".temp"
         print("Downloading {} to {}".format(url, localpath))
         r = requests.get(url, stream=True)
 
@@ -62,7 +64,7 @@ def download_files():
         wrote = 0
         with tqdm(total=total_size, unit='B', unit_scale=True, leave=False,
                   desc="Downloading") as pbar:
-            with open(localpath, "wb") as f:
+            with open(tmppath, "wb") as f:
                 for data in r.iter_content(block_size):
                     wrote = wrote + len(data)
                     f.write(data)
@@ -70,6 +72,8 @@ def download_files():
         if total_size != 0 and wrote != total_size:
             raise requests.exceptions.ConnectionError(
                 "Connection to {} failed".format(url))
+        else:
+            shutil.move(tmppath, localpath)
 
 
 if __name__ == "__main__":

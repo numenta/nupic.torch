@@ -15,7 +15,7 @@ dataset, then they run the nupic.torch `GSCSparseCNN` or
 
 ### Option 1: Inference only
 
-Dataset download size: 127 MB
+Dataset download size: 115 MB
 
 ```
 pip install git+https://github.com/numenta/nupic.torch.git#egg=nupic.torch

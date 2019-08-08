@@ -20,8 +20,8 @@
 # ----------------------------------------------------------------------
 
 import argparse
-import glob
 import os
+from pathlib import Path
 import re
 
 import numpy as np
@@ -34,11 +34,22 @@ from tqdm import tqdm
 from nupic.torch.models.sparse_cnn import gsc_sparse_cnn, gsc_super_sparse_cnn
 from nupic.torch.modules import rezero_weights, update_boost_strength
 
-from audio_transforms import (ChangeAmplitude, ChangeSpeedAndPitchAudio,
-                              FixAudioLength, ToSTFT, StretchAudioOnSTFT,
-                              TimeshiftAudioOnSTFT, FixSTFTDimension,
-                              ToMelSpectrogramFromSTFT, DeleteSTFT,
-                              expand_dims, load_data)
+from audio_transforms import (
+    AddNoise,
+    ChangeAmplitude,
+    ChangeSpeedAndPitchAudio,
+    DeleteSTFT,
+    FixAudioLength,
+    FixSTFTDimension,
+    LoadAudio,
+    StretchAudioOnSTFT,
+    TimeshiftAudioOnSTFT,
+    ToMelSpectrogram,
+    ToMelSpectrogramFromSTFT,
+    ToSTFT,
+    ToTensor,
+    Unsqueeze
+)
 
 
 os.chdir(os.path.dirname(os.path.abspath(__file__)))
@@ -52,6 +63,12 @@ TRAIN_BATCH_SIZE = 16
 VALID_BATCH_SIZE = 1000
 TEST_BATCH_SIZE = 1000
 REDUCE_LR_ON_PLATEAU = False
+
+LABELS = tuple(["unknown", "silence", "zero", "one", "two", "three", "four",
+                "five", "six", "seven", "eight", "nine"])
+
+DATAPATH = Path("data")
+EXTRACTPATH = DATAPATH/"raw"
 
 
 def train(model, loader, optimizer, criterion, device):
@@ -116,27 +133,38 @@ def test(model, loader, criterion, device, desc="Test"):
             "total_correct": total_correct}
 
 
-
 def do_training(model, device):
     """
     Train the model.
+
+    :param model: pytorch model to be trained
+    :type model: torch.nn.Module
+
+    :param device:
+    :type device: torch.device
     """
+    test_wavdata_to_tensor = [
+        LoadAudio(),
+        FixAudioLength(),
+        ToMelSpectrogram(n_mels=32),
+        ToTensor("mel_spectrogram", "input"),
+        Unsqueeze("input"),
+    ]
 
-    x_valid, y_valid = map(torch.tensor, np.load("data/gsc_valid.npz").values())
-    valid_loader = torch.utils.data.DataLoader(
-        torch.utils.data.TensorDataset(x_valid, y_valid),
-        batch_size=VALID_BATCH_SIZE)
+    valid_dataset = dataset_from_wavfiles(
+        EXTRACTPATH/"valid", test_wavdata_to_tensor,
+        cachefilepath=DATAPATH/"gsc_valid.npz")
+    valid_loader = torch.utils.data.DataLoader(valid_dataset,
+                                               batch_size=VALID_BATCH_SIZE)
 
-    x_test, y_test = map(torch.tensor, np.load("data/gsc_test.npz").values())
-    test_loader = torch.utils.data.DataLoader(
-        torch.utils.data.TensorDataset(x_test, y_test),
-        batch_size=TEST_BATCH_SIZE)
+    test_dataset = dataset_from_wavfiles(
+        EXTRACTPATH/"test", test_wavdata_to_tensor,
+        cachefilepath=DATAPATH/"gsc_test.npz")
+    test_loader = torch.utils.data.DataLoader(test_dataset,
+                                              batch_size=TEST_BATCH_SIZE)
 
-    sgd = optim.SGD(model.parameters(), lr=LEARNING_RATE, momentum=MOMENTUM)
-    lr_scheduler = optim.lr_scheduler.StepLR(sgd, step_size=1,
-                                             gamma=LEARNING_RATE_GAMMA)
-
-    train_transform = [
+    train_wavdata_to_tensor = [
+        LoadAudio(),
         ChangeAmplitude(),
         ChangeSpeedAndPitchAudio(),
         FixAudioLength(),
@@ -146,24 +174,22 @@ def do_training(model, device):
         FixSTFTDimension(),
         ToMelSpectrogramFromSTFT(n_mels=32),
         DeleteSTFT(),
-        expand_dims,
+        ToTensor("mel_spectrogram", "input"),
+        Unsqueeze("input"),
     ]
-    train_dir = os.path.join("data", "raw", "train")
-    num_files = len(glob.glob("{}/*/*.wav".format(train_dir)))
-
+    sgd = optim.SGD(model.parameters(), lr=LEARNING_RATE, momentum=MOMENTUM)
+    lr_scheduler = optim.lr_scheduler.StepLR(sgd, step_size=1,
+                                             gamma=LEARNING_RATE_GAMMA)
     for epoch in range(EPOCHS):
-        x_train, y_train = zip(*tqdm(load_data(folder=train_dir,
-                                               transforms=train_transform),
-                                     desc="Processing audio",
-                                     total=num_files,
-                                     leave=False))
-
-        x_train, y_train  = map(torch.tensor, (x_train, y_train))
-        batch_size = (FIRST_EPOCH_BATCH_SIZE if epoch == 0
-                      else TRAIN_BATCH_SIZE)
+        train_dataset = dataset_from_wavfiles(
+            EXTRACTPATH/"train", train_wavdata_to_tensor,
+            cachefilepath=DATAPATH/"gsc_train{}.npz".format(epoch),
+            silence_percentage=0.1)
         train_loader = torch.utils.data.DataLoader(
-            torch.utils.data.TensorDataset(x_train, y_train),
-            batch_size=batch_size, shuffle=True)
+            train_dataset,
+            batch_size=(FIRST_EPOCH_BATCH_SIZE if epoch == 0
+                        else TRAIN_BATCH_SIZE),
+            shuffle=True)
 
         train(model=model, loader=train_loader, optimizer=sgd,
               criterion=F.nll_loss, device=device)
@@ -185,18 +211,92 @@ def do_training(model, device):
 def do_noise_test(model, device):
     """
     Test on the noisy data.
+
+    :param model: pytorch model to be tested
+    :type model: torch.nn.Module
+
+    :param device:
+    :type device: torch.device
     """
-    for filepath in sorted(glob.glob("data/gsc_test_noise*.npz")):
-        suffix = re.match("data/gsc_test_noise(.*).npz", filepath).groups()[0]
-        noise = float("0.{}".format(suffix))
-        x_test, y_test = map(torch.tensor, np.load(filepath).values())
-        test_dataset = torch.utils.data.TensorDataset(x_test, y_test)
-        test_loader = torch.utils.data.DataLoader(
-            test_dataset, batch_size=TEST_BATCH_SIZE, shuffle=True)
+    for noise in [0.0, 0.05, 0.1, 0.15, 0.2, 0.25, 0.3, 0.35, 0.4, 0.45, 0.5]:
+        noise_wavdata_to_tensor = [LoadAudio(),
+                                   FixAudioLength(),
+                                   AddNoise(noise),
+                                   ToMelSpectrogram(n_mels=32),
+                                   ToTensor("mel_spectrogram", "input"),
+                                   Unsqueeze("input")]
+        cachefile = "gsc_test_noise{}.npz".format("{:.2f}".format(noise)[2:])
+        test_dataset = dataset_from_wavfiles(EXTRACTPATH/"test",
+                                             noise_wavdata_to_tensor,
+                                             cachefilepath=DATAPATH/cachefile)
+        test_loader = torch.utils.data.DataLoader(test_dataset,
+                                                  batch_size=TEST_BATCH_SIZE)
         results = test(model=model, loader=test_loader, criterion=F.nll_loss,
                        device=device)
-
         print("Noise level: {}, Results: {}".format(noise, results))
+
+
+def dataset_from_wavfiles(folder, wavdata_to_tensor, cachefilepath,
+                          silence_percentage=0.0):
+    """
+    Get and cache a processed dataset from a folder of wav files.
+
+    :param folder:
+    Folder containing wav files in subfolders, for example "./label1/file1.wav"
+    :type folder: pathlib.Path
+
+    :param wavdata_to_tensor:
+    List of callable objects that create a tensor from a wav file path when
+    called in succession.
+    :type wavdata_to_tensor: list
+
+    :param cachefilepath:
+    Location to save the processed data.
+    :type cachefilepath: pathlib.Path
+
+    :param silence_percentage:
+    Controls the number of silence wav files that are appended to the dataset.
+    :type silence_percentage: float
+
+    :return: torch.utils.data.TensorDataset
+    """
+    if cachefilepath.exists():
+        x, y = np.load(cachefilepath).values()
+        x, y = map(torch.tensor, (x, y))
+    else:
+        label_to_id = {label: i for i, label in enumerate(LABELS)}
+
+        wavdatas = []
+        ids = []
+
+        for label in os.listdir(folder):
+            if label.startswith("_"):
+                continue
+
+            for f in os.listdir(folder/label):
+                d = { "path": folder/label/f }
+                wavdatas.append(d)
+                ids.append(label_to_id[label])
+
+        if silence_percentage > 0.0:
+            num_silent = int(len(wavdatas) * silence_percentage)
+            for _ in range(num_silent):
+                d = {"path": None}
+                wavdatas.append(d)
+                ids.append(label_to_id["silence"])
+
+        x = torch.zeros(len(wavdatas), 1, 32, 32)
+        for i, d in enumerate(tqdm(wavdatas, leave=False,
+                                   desc="Processing audio")):
+            for xform in wavdata_to_tensor:
+                d = xform(d)
+            x[i,0] = d
+        y = torch.tensor(ids)
+
+        print("Caching data to {}".format(cachefilepath))
+        np.savez(cachefilepath, x.numpy(), y.numpy())
+
+    return torch.utils.data.TensorDataset(x, y)
 
 
 if __name__ == "__main__":
@@ -214,6 +314,13 @@ if __name__ == "__main__":
     print(model)
 
     if not args.pretrained:
+        cache_path = os.path.join("data", "cached_model.pth")
+
+        # Option 1: Train model now
         do_training(model, device)
+        torch.save(model.state_dict(), cache_path)
+
+        # Option 2: Use previously saved model
+        # model.load_state_dict(torch.load(cache_path))
 
     do_noise_test(model, device)

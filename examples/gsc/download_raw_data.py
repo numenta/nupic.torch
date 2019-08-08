@@ -23,20 +23,14 @@
 Download, extract, and organize Google Speech Commands dataset
 """
 
-import math
 import os
 from pathlib import Path
 import re
 import shutil
 import tarfile
 
-import numpy as np
 import requests
 from tqdm import tqdm
-
-from audio_transforms import (FixAudioLength, AddNoise, ToMelSpectrogram,
-                              expand_dims, load_data)
-
 
 os.chdir(os.path.dirname(os.path.abspath(__file__)))
 
@@ -55,9 +49,10 @@ def download_tarball():
     block_size = 1024
     wrote = 0
 
-    with tqdm(total=total_size, unit='B', unit_scale=True, leave=False,
+    tmppath = str(TARFILEPATH) + ".temp"
+    with tqdm(total=total_size, unit="B", unit_scale=True, leave=False,
               desc="Downloading") as pbar:
-        with open(TARFILEPATH, "wb") as f:
+        with open(tmppath, "wb") as f:
             for data in r.iter_content(block_size):
                 wrote = wrote + len(data)
                 f.write(data)
@@ -66,6 +61,8 @@ def download_tarball():
     if total_size != 0 and wrote != total_size:
         raise requests.exceptions.ConnectionError(
             "Connection to {} failed".format(URL))
+    else:
+        shutil.move(tmppath, TARFILEPATH)
 
 
 def extract_tarball():
@@ -115,40 +112,8 @@ def organize_files():
         shutil.move(str(EXTRACTPATH/category), destdir)
 
 
-def generate_test_data():
-    test_transform = [
-        FixAudioLength(),
-        ToMelSpectrogram(n_mels=32),
-        expand_dims,
-    ]
-
-    outfile = os.path.join("data", "gsc_valid.npz")
-    print("Saving {}".format(outfile))
-    np.savez(outfile, zip(*load_data(folder=EXTRACTPATH/"valid",
-                                     transforms=test_transform)))
-    outfile = os.path.join("data", "gsc_test.npz")
-    print("Saving {}".format(outfile))
-    np.savez(outfile, zip(*load_data(folder=EXTRACTPATH/"test",
-                                     transforms=test_transform)))
-
-    for noise in [0.0, 0.05, 0.1, 0.15, 0.2, 0.25, 0.3, 0.35, 0.4, 0.45, 0.5]:
-        noise_transform = [
-            FixAudioLength(),
-            AddNoise(noise),
-            ToMelSpectrogram(n_mels=32),
-            expand_dims,
-        ]
-
-        outfile = os.path.join("data", "gsc_test_noise{}.npz".format(
-            "{:.2f}".format(noise)[2:]))
-        print("Saving {}".format(outfile))
-        np.savez(outfile, zip(*load_data(folder=EXTRACTPATH/"test",
-                                         transforms=noise_transform)))
-
-
 if __name__ == "__main__":
     os.makedirs(EXTRACTPATH, exist_ok=True)
     download_tarball()
     extract_tarball()
     organize_files()
-    generate_test_data()

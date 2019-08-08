@@ -24,7 +24,6 @@ Audio transforms adapted from
 https://github.com/tugstugi/pytorch-speech-commands
 """
 
-import os
 import random
 
 import librosa
@@ -362,73 +361,8 @@ class AudioFromSTFT(object):
 class Unsqueeze(object):
     """Unsqueeze audio data into a single tensor."""
 
-    def __init__(self, tensor_name, model_type):
-        self.model_type = model_type
+    def __init__(self, tensor_name):
         self.tensor_name = tensor_name
 
     def __call__(self, data):
-        data = data[self.tensor_name]
-        if self.model_type in ["resnet9", "cnn"]:
-            data = torch.unsqueeze(data, 0)
-        return data
-
-
-
-CLASSES = tuple(
-    "unknown, silence, zero, one, two, three, four, five, six, seven, eight, "
-    "nine".split(", ")
-)
-
-
-def load_data(folder, silence_percentage=0.1, transforms=None):
-    sample_rate = 16000
-
-    all_classes = [
-        d
-        for d in os.listdir(folder)
-        if os.path.isdir(os.path.join(folder, d)) and not d.startswith("_")
-    ]
-    for c in CLASSES[2:]:
-        assert c in all_classes
-
-    class_to_idx = {CLASSES[i]: i for i in range(len(CLASSES))}
-    for c in all_classes:
-        if c not in class_to_idx:
-            print("Class ", c, "assigned as unknown")
-            class_to_idx[c] = 0
-
-    num_files = 0
-    for c in all_classes:
-        d = os.path.join(folder, c)
-        target = class_to_idx[c]
-        for f in os.listdir(d):
-            path = os.path.join(d, f)
-            samples, sample_rate = librosa.load(path, sr=sample_rate)
-            audio = {
-                "samples": samples,
-                "sample_rate": sample_rate}
-            if transforms:
-                for f in transforms:
-                    audio = f(audio)
-
-            num_files += 1
-            yield audio, target
-
-    # add silence
-    target = class_to_idx["silence"]
-    samples = np.zeros(sample_rate, dtype=np.float32)
-    silence = {
-        "samples": samples,
-        "sample_rate": sample_rate}
-    if transforms:
-        for f in transforms:
-            silence = f(silence)
-
-    silence_items = int(num_files * silence_percentage)
-
-    for _ in range(silence_items):
-        yield silence, target
-
-
-def expand_dims(data):
-    return np.expand_dims(data["mel_spectrogram"], 0)
+        return torch.unsqueeze(data[self.tensor_name], 0)
