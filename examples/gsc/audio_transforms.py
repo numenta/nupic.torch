@@ -396,9 +396,8 @@ def load_data(folder, silence_percentage=0.1, transforms=None):
         if c not in class_to_idx:
             print("Class ", c, "assigned as unknown")
             class_to_idx[c] = 0
-    data = []
-    labels = []
 
+    num_files = 0
     for c in all_classes:
         d = os.path.join(folder, c)
         target = class_to_idx[c]
@@ -411,8 +410,9 @@ def load_data(folder, silence_percentage=0.1, transforms=None):
             if transforms:
                 for f in transforms:
                     audio = f(audio)
-            data.append(audio)
-            labels.append(target)
+
+            num_files += 1
+            yield audio, target
 
     # add silence
     target = class_to_idx["silence"]
@@ -424,11 +424,10 @@ def load_data(folder, silence_percentage=0.1, transforms=None):
         for f in transforms:
             silence = f(silence)
 
-    silence_items = int(len(data) * silence_percentage)
-    data = np.concatenate((data, [silence] * silence_items))
-    labels = np.concatenate((labels, [target] * silence_items))
+    silence_items = int(num_files * silence_percentage)
 
-    return data, labels
+    for _ in range(silence_items):
+        yield silence, target
 
 
 def expand_dims(data):

@@ -124,12 +124,12 @@ def generate_test_data():
 
     outfile = os.path.join("data", "gsc_valid.npz")
     print("Saving {}".format(outfile))
-    np.savez(outfile, *load_data(folder=EXTRACTPATH/"valid",
-                                 transforms=test_transform))
+    np.savez(outfile, zip(*load_data(folder=EXTRACTPATH/"valid",
+                                     transforms=test_transform)))
     outfile = os.path.join("data", "gsc_test.npz")
     print("Saving {}".format(outfile))
-    np.savez(outfile, *load_data(folder=EXTRACTPATH/"test",
-                                 transforms=test_transform))
+    np.savez(outfile, zip(*load_data(folder=EXTRACTPATH/"test",
+                                     transforms=test_transform)))
 
     for noise in [0.0, 0.05, 0.1, 0.15, 0.2, 0.25, 0.3, 0.35, 0.4, 0.45, 0.5]:
         noise_transform = [
@@ -142,8 +142,8 @@ def generate_test_data():
         outfile = os.path.join("data", "gsc_test_noise{}.npz".format(
             "{:.2f}".format(noise)[2:]))
         print("Saving {}".format(outfile))
-        np.savez(outfile, *load_data(folder=EXTRACTPATH/"test",
-                                     transforms=noise_transform))
+        np.savez(outfile, zip(*load_data(folder=EXTRACTPATH/"test",
+                                         transforms=noise_transform)))
 
 
 if __name__ == "__main__":

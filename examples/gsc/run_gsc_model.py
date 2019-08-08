@@ -149,11 +149,16 @@ def do_training(model, device):
         expand_dims,
     ]
     train_dir = os.path.join("data", "raw", "train")
+    num_files = len(glob.glob("{}/*/*.wav".format(train_dir)))
 
     for epoch in range(EPOCHS):
-        x_train, y_train  = map(torch.tensor,
-                                load_data(folder=train_dir,
-                                          transforms=train_transform))
+        x_train, y_train = zip(*tqdm(load_data(folder=train_dir,
+                                               transforms=train_transform),
+                                     desc="Processing audio",
+                                     total=num_files,
+                                     leave=False))
+
+        x_train, y_train  = map(torch.tensor, (x_train, y_train))
         batch_size = (FIRST_EPOCH_BATCH_SIZE if epoch == 0
                       else TRAIN_BATCH_SIZE)
         train_loader = torch.utils.data.DataLoader(
