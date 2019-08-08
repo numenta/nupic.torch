@@ -30,16 +30,21 @@ import re
 import shutil
 import tarfile
 
+import numpy as np
 import requests
 from tqdm import tqdm
+
+from audio_transforms import (FixAudioLength, AddNoise, ToMelSpectrogram,
+                              expand_dims, load_data)
 
 
 os.chdir(os.path.dirname(os.path.abspath(__file__)))
 
 FILENAME = "speech_commands_v0.01.tar.gz"
 URL = "http://download.tensorflow.org/data/{}".format(FILENAME)
-TARFILEPATH = Path("data")/FILENAME
-EXTRACTPATH = Path("data")/"raw"
+DATAPATH = Path("data")
+TARFILEPATH = DATAPATH/FILENAME
+EXTRACTPATH = DATAPATH/"raw"
 
 
 def download_tarball():
@@ -110,8 +115,40 @@ def organize_files():
         shutil.move(str(EXTRACTPATH/category), destdir)
 
 
+def generate_test_data():
+    test_transform = [
+        FixAudioLength(),
+        ToMelSpectrogram(n_mels=32),
+        expand_dims,
+    ]
+
+    outfile = os.path.join("data", "gsc_valid.npz")
+    print("Saving {}".format(outfile))
+    np.savez(outfile, *load_data(folder=EXTRACTPATH/"valid",
+                                 transforms=test_transform))
+    outfile = os.path.join("data", "gsc_test.npz")
+    print("Saving {}".format(outfile))
+    np.savez(outfile, *load_data(folder=EXTRACTPATH/"test",
+                                 transforms=test_transform))
+
+    for noise in [0.0, 0.05, 0.1, 0.15, 0.2, 0.25, 0.3, 0.35, 0.4, 0.45, 0.5]:
+        noise_transform = [
+            FixAudioLength(),
+            AddNoise(noise),
+            ToMelSpectrogram(n_mels=32),
+            expand_dims,
+        ]
+
+        outfile = os.path.join("data", "gsc_test_noise{}.npz".format(
+            "{:.2f}".format(noise)[2:]))
+        print("Saving {}".format(outfile))
+        np.savez(outfile, *load_data(folder=EXTRACTPATH/"test",
+                                     transforms=noise_transform))
+
+
 if __name__ == "__main__":
     os.makedirs(EXTRACTPATH, exist_ok=True)
     download_tarball()
     extract_tarball()
     organize_files()
+    generate_test_data()

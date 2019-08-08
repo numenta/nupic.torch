@@ -21,6 +21,7 @@
 
 import argparse
 import glob
+import os
 import re
 
 import numpy as np
@@ -33,11 +34,19 @@ from tqdm import tqdm
 from nupic.torch.models.sparse_cnn import gsc_sparse_cnn, gsc_super_sparse_cnn
 from nupic.torch.modules import rezero_weights, update_boost_strength
 
+from audio_transforms import (ChangeAmplitude, ChangeSpeedAndPitchAudio,
+                              FixAudioLength, ToSTFT, StretchAudioOnSTFT,
+                              TimeshiftAudioOnSTFT, FixSTFTDimension,
+                              ToMelSpectrogramFromSTFT, DeleteSTFT,
+                              expand_dims, load_data)
+
+
+os.chdir(os.path.dirname(os.path.abspath(__file__)))
 
 LEARNING_RATE = 0.01
 LEARNING_RATE_GAMMA = 0.9
 MOMENTUM = 0.0
-EPOCHS = 2  # 15
+EPOCHS = 30
 FIRST_EPOCH_BATCH_SIZE = 4
 TRAIN_BATCH_SIZE = 16
 VALID_BATCH_SIZE = 1000
@@ -107,60 +116,71 @@ def test(model, loader, criterion, device, desc="Test"):
             "total_correct": total_correct}
 
 
-def run_example(supersparse, pretrained):
-    # Use GPU if available
-    device = torch.device("cuda" if torch.cuda.is_available() else "cpu")
 
-    # For this example we will use the default values.
-    # See GSCSparseCNN documentation for all possible parameters and their values.
-    modelclass = (gsc_super_sparse_cnn if supersparse else gsc_sparse_cnn)
+def do_training(model, device):
+    """
+    Train the model.
+    """
 
-    model = modelclass(pretrained=pretrained).to(device)
-    print("Model:")
-    print(model)
+    x_valid, y_valid = map(torch.tensor, np.load("data/gsc_valid.npz").values())
+    valid_loader = torch.utils.data.DataLoader(
+        torch.utils.data.TensorDataset(x_valid, y_valid),
+        batch_size=VALID_BATCH_SIZE)
 
-    if not pretrained:
-        # Train
-        x_train, y_train = map(torch.tensor, np.load("data/gsc_train.npz").values())
-        x_valid, y_valid = map(torch.tensor, np.load("data/gsc_valid.npz").values())
-        x_test, y_test = map(torch.tensor, np.load("data/gsc_test.npz").values())
+    x_test, y_test = map(torch.tensor, np.load("data/gsc_test.npz").values())
+    test_loader = torch.utils.data.DataLoader(
+        torch.utils.data.TensorDataset(x_test, y_test),
+        batch_size=TEST_BATCH_SIZE)
 
-        train_dataset = torch.utils.data.TensorDataset(x_train, y_train)
-        valid_dataset = torch.utils.data.TensorDataset(x_valid, y_valid)
-        test_dataset = torch.utils.data.TensorDataset(x_test, y_test)
+    sgd = optim.SGD(model.parameters(), lr=LEARNING_RATE, momentum=MOMENTUM)
+    lr_scheduler = optim.lr_scheduler.StepLR(sgd, step_size=1,
+                                             gamma=LEARNING_RATE_GAMMA)
 
-        first_loader = torch.utils.data.DataLoader(
-            train_dataset, batch_size=FIRST_EPOCH_BATCH_SIZE, shuffle=True)
+    train_transform = [
+        ChangeAmplitude(),
+        ChangeSpeedAndPitchAudio(),
+        FixAudioLength(),
+        ToSTFT(),
+        StretchAudioOnSTFT(),
+        TimeshiftAudioOnSTFT(),
+        FixSTFTDimension(),
+        ToMelSpectrogramFromSTFT(n_mels=32),
+        DeleteSTFT(),
+        expand_dims,
+    ]
+    train_dir = os.path.join("data", "raw", "train")
+
+    for epoch in range(EPOCHS):
+        x_train, y_train  = map(torch.tensor,
+                                load_data(folder=train_dir,
+                                          transforms=train_transform))
+        batch_size = (FIRST_EPOCH_BATCH_SIZE if epoch == 0
+                      else TRAIN_BATCH_SIZE)
         train_loader = torch.utils.data.DataLoader(
-            train_dataset, batch_size=TRAIN_BATCH_SIZE, shuffle=True)
-        valid_loader = torch.utils.data.DataLoader(
-            valid_dataset, batch_size=VALID_BATCH_SIZE, shuffle=True)
-        test_loader = torch.utils.data.DataLoader(
-            test_dataset, batch_size=TEST_BATCH_SIZE, shuffle=True)
+            torch.utils.data.TensorDataset(x_train, y_train),
+            batch_size=batch_size, shuffle=True)
 
-        sgd = optim.SGD(model.parameters(), lr=LEARNING_RATE, momentum=MOMENTUM)
-        lr_scheduler = optim.lr_scheduler.StepLR(sgd, step_size=1,
-                                                 gamma=LEARNING_RATE_GAMMA)
+        train(model=model, loader=train_loader, optimizer=sgd,
+              criterion=F.nll_loss, device=device)
+        if REDUCE_LR_ON_PLATEAU:
+            validation = test(model=model, loader=valid_loader,
+                              criterion=F.nll_loss, device=device,
+                              desc="Validation")
+            lr_scheduler.step(validation["loss"])
+        else:
+            lr_scheduler.step()
+        model.apply(rezero_weights)
+        model.apply(update_boost_strength)
 
-        for epoch in range(EPOCHS):
-            loader = (first_loader if epoch == 0 else train_loader)
-            train(model=model, loader=loader, optimizer=sgd,
-                  criterion=F.nll_loss, device=device)
-            if REDUCE_LR_ON_PLATEAU:
-                validation = test(model=model, loader=valid_loader,
-                                  criterion=F.nll_loss, device=device,
-                                  desc="Validation")
-                lr_scheduler.step(validation["loss"])
-            else:
-                lr_scheduler.step()
-            model.apply(rezero_weights)
-            model.apply(update_boost_strength)
+        results = test(model=model, loader=test_loader, criterion=F.nll_loss,
+                       device=device)
+        print("Epoch {}: {}".format(epoch, results))
 
-            results = test(model=model, loader=test_loader, criterion=F.nll_loss,
-                           device=device)
-            print("Epoch {}: {}".format(epoch, results))
 
-    # Test on the noisy data.
+def do_noise_test(model, device):
+    """
+    Test on the noisy data.
+    """
     for filepath in sorted(glob.glob("data/gsc_test_noise*.npz")):
         suffix = re.match("data/gsc_test_noise(.*).npz", filepath).groups()[0]
         noise = float("0.{}".format(suffix))
@@ -180,4 +200,15 @@ if __name__ == "__main__":
     parser.add_argument("--pretrained", action="store_true")
 
     args = parser.parse_args()
-    run_example(supersparse=args.supersparse, pretrained=args.pretrained)
+
+    # Use GPU if available
+    device = torch.device("cuda" if torch.cuda.is_available() else "cpu")
+    modelclass = (gsc_super_sparse_cnn if args.supersparse else gsc_sparse_cnn)
+    model = modelclass(pretrained=args.pretrained).to(device)
+    print("Model:")
+    print(model)
+
+    if not args.pretrained:
+        do_training(model, device)
+
+    do_noise_test(model, device)

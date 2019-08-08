@@ -20,8 +20,6 @@
 # ----------------------------------------------------------------------
 
 """
-Preprocess the Google Speech Commands wav files.
-
 Audio transforms adapted from
 https://github.com/tugstugi/pytorch-speech-commands
 """
@@ -435,51 +433,3 @@ def load_data(folder, silence_percentage=0.1, transforms=None):
 
 def expand_dims(data):
     return np.expand_dims(data["mel_spectrogram"], 0)
-
-
-if __name__ == "__main__":
-    train_dir = os.path.join("data", "raw", "train")
-    valid_dir = os.path.join("data", "raw", "valid")
-    test_dir = os.path.join("data", "raw", "test")
-
-    train_transform = [
-        ChangeAmplitude(),
-        ChangeSpeedAndPitchAudio(),
-        FixAudioLength(),
-        ToSTFT(),
-        StretchAudioOnSTFT(),
-        TimeshiftAudioOnSTFT(),
-        FixSTFTDimension(),
-        ToMelSpectrogramFromSTFT(n_mels=32),
-        DeleteSTFT(),
-        expand_dims,
-    ]
-    test_transform = [
-        FixAudioLength(),
-        ToMelSpectrogram(n_mels=32),
-        expand_dims,
-    ]
-
-
-    outfile = os.path.join("data", "gsc_train.npz")
-    print("Saving {}".format(outfile))
-    np.savez(outfile, *load_data(folder=train_dir, transforms=train_transform))
-    outfile = os.path.join("data", "gsc_valid.npz")
-    print("Saving {}".format(outfile))
-    np.savez(outfile, *load_data(folder=valid_dir, transforms=test_transform))
-    outfile = os.path.join("data", "gsc_test.npz")
-    print("Saving {}".format(outfile))
-    np.savez(outfile, *load_data(folder=test_dir, transforms=test_transform))
-
-    for noise in [0.0, 0.05, 0.1, 0.15, 0.2, 0.25, 0.3, 0.35, 0.4, 0.45, 0.5]:
-        noise_transform = [
-            FixAudioLength(),
-            AddNoise(noise),
-            ToMelSpectrogram(n_mels=32),
-            expand_dims,
-        ]
-
-        outfile = os.path.join("data", "gsc_test_noise{}.npz".format(
-            "{:.2f}".format(noise)[2:]))
-        print("Saving {}".format(outfile))
-        np.savez(outfile, *load_data(folder=test_dir, transforms=noise_transform))

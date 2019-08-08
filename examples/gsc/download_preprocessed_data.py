@@ -35,9 +35,6 @@ os.chdir(os.path.dirname(os.path.abspath(__file__)))
 
 URL_BASE = "http://public.numenta.com/datasets/google_speech_commands"
 FILES = [
-    "gsc_train.npz",
-    "gsc_valid.npz",
-    "gsc_test.npz",
     "gsc_test_noise00.npz",
     "gsc_test_noise05.npz",
     "gsc_test_noise10.npz",
