@@ -13,18 +13,18 @@ These Python scripts download and prepare the Google Speech Commands
 dataset, then they run the nupic.torch `GSCSparseCNN` or
 `GSCSuperSparseCNN` on the dataset.
 
-### Option 1: Inference only
+### Option 1: Download preprocessed input data
 
-Dataset download size: 115 MB
+Dataset download size: 1.8 GB
 
 ```
 pip install git+https://github.com/numenta/nupic.torch.git#egg=nupic.torch
 pip install -r requirements.txt
 python download_preprocessed_data.py
-python run_gsc_model.py --pretrained
+python run_gsc_model.py
 ```
 
-### Option 2: Learning and inference
+### Option 2: Download wav files, process them on your machine
 
 Dataset download size: 1.5 GB
 
@@ -37,11 +37,12 @@ python run_gsc_model.py
 
 ### Model configuration
 
-Two optional flags
+Optional flags
 
 ```
-python run_gsc_model.py --pretrained --supersparse
+python run_gsc_model.py --pretrained --supersparse --seed 42
 ```
 
 - `--pretrained`: Use pretrained model rather than training locally
 - `--supersparse`: Use "super sparse" network rather than basic sparse network
+- `--seed`: Random seed

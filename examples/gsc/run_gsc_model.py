@@ -19,9 +19,14 @@
 # http://numenta.org/licenses/
 # ----------------------------------------------------------------------
 
+"""
+Run a sparse CNN on the Google Speech Commands dataset
+"""
+
 import argparse
 import os
 from pathlib import Path
+import random
 import re
 
 import numpy as np
@@ -62,7 +67,7 @@ FIRST_EPOCH_BATCH_SIZE = 4
 TRAIN_BATCH_SIZE = 16
 VALID_BATCH_SIZE = 1000
 TEST_BATCH_SIZE = 1000
-REDUCE_LR_ON_PLATEAU = False
+WEIGHT_DECAY = 0.01
 
 LABELS = tuple(["unknown", "silence", "zero", "one", "two", "three", "four",
                 "five", "six", "seven", "eight", "nine"])
@@ -157,12 +162,6 @@ def do_training(model, device):
     valid_loader = torch.utils.data.DataLoader(valid_dataset,
                                                batch_size=VALID_BATCH_SIZE)
 
-    test_dataset = dataset_from_wavfiles(
-        EXTRACTPATH/"test", test_wavdata_to_tensor,
-        cachefilepath=DATAPATH/"gsc_test.npz")
-    test_loader = torch.utils.data.DataLoader(test_dataset,
-                                              batch_size=TEST_BATCH_SIZE)
-
     train_wavdata_to_tensor = [
         LoadAudio(),
         ChangeAmplitude(),
@@ -177,7 +176,8 @@ def do_training(model, device):
         ToTensor("mel_spectrogram", "input"),
         Unsqueeze("input"),
     ]
-    sgd = optim.SGD(model.parameters(), lr=LEARNING_RATE, momentum=MOMENTUM)
+    sgd = optim.SGD(model.parameters(), lr=LEARNING_RATE, momentum=MOMENTUM,
+                    weight_decay=WEIGHT_DECAY)
     lr_scheduler = optim.lr_scheduler.StepLR(sgd, step_size=1,
                                              gamma=LEARNING_RATE_GAMMA)
     for epoch in range(EPOCHS):
@@ -193,17 +193,11 @@ def do_training(model, device):
 
         train(model=model, loader=train_loader, optimizer=sgd,
               criterion=F.nll_loss, device=device)
-        if REDUCE_LR_ON_PLATEAU:
-            validation = test(model=model, loader=valid_loader,
-                              criterion=F.nll_loss, device=device,
-                              desc="Validation")
-            lr_scheduler.step(validation["loss"])
-        else:
-            lr_scheduler.step()
+        lr_scheduler.step()
         model.apply(rezero_weights)
         model.apply(update_boost_strength)
 
-        results = test(model=model, loader=test_loader, criterion=F.nll_loss,
+        results = test(model=model, loader=valid_loader, criterion=F.nll_loss,
                        device=device)
         print("Epoch {}: {}".format(epoch, results))
 
@@ -290,7 +284,7 @@ def dataset_from_wavfiles(folder, wavdata_to_tensor, cachefilepath,
                                    desc="Processing audio")):
             for xform in wavdata_to_tensor:
                 d = xform(d)
-            x[i,0] = d
+            x[i] = d
         y = torch.tensor(ids)
 
         print("Caching data to {}".format(cachefilepath))
@@ -303,8 +297,14 @@ if __name__ == "__main__":
     parser = argparse.ArgumentParser()
     parser.add_argument("--supersparse", action="store_true")
     parser.add_argument("--pretrained", action="store_true")
+    parser.add_argument("--seed", type=int, default=-1)
 
     args = parser.parse_args()
+
+    if args.seed != -1:
+        random.seed(args.seed)
+        torch.manual_seed(args.seed)
+        np.random.seed(args.seed)
 
     # Use GPU if available
     device = torch.device("cuda" if torch.cuda.is_available() else "cpu")
@@ -314,7 +314,7 @@ if __name__ == "__main__":
     print(model)
 
     if not args.pretrained:
-        cache_path = os.path.join("data", "cached_model.pth")
+        cache_path = DATAPATH/"cached_model.pth"
 
         # Option 1: Train model now
         do_training(model, device)

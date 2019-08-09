@@ -44,6 +44,7 @@ EXTRACTPATH = DATAPATH/"raw"
 def download_tarball():
     print("Downloading {} to {}".format(URL, TARFILEPATH))
     r = requests.get(URL, stream=True)
+    r.raise_for_status()
 
     total_size = int(r.headers.get("content-length", 0));
     block_size = 1024
@@ -72,7 +73,7 @@ def extract_tarball():
         tot = 64764 # len(list(tar.getnames()))
         tar.extractall(EXTRACTPATH,
                        members=tqdm(tar, desc="Extracting", total=tot,
-                                    unit="file", unit_scale=True))
+                                    unit="file", unit_scale=True, leave=False))
 
 
 def organize_files():
