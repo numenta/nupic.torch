@@ -3,7 +3,7 @@
 In this example we run a sparse convolutional neural network on the
 [Google Speech Commands](https://arxiv.org/abs/1804.03209) spoken
 digit dataset, as in the paper
-[How Can We Be So Dense]()https://arxiv.org/abs/1903.11257. During
+[How Can We Be So Dense](https://arxiv.org/abs/1903.11257). During
 testing, we add white noise to the dataset and measure how well the
 network classifies the noisy data.
 
@@ -36,8 +36,6 @@ python run_gsc_model.py
 ```
 
 ### Model configuration
-
-Optional flags
 
 ```
 python run_gsc_model.py --pretrained --supersparse --seed 42
