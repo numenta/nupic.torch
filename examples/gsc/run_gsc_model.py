@@ -25,9 +25,8 @@ Run a sparse CNN on the Google Speech Commands dataset
 
 import argparse
 import os
-from pathlib import Path
 import random
-import re
+from pathlib import Path
 
 import numpy as np
 import torch
@@ -35,9 +34,6 @@ import torch.nn.functional as F
 import torch.optim as optim
 import torch.utils.data
 from tqdm import tqdm
-
-from nupic.torch.models.sparse_cnn import gsc_sparse_cnn, gsc_super_sparse_cnn
-from nupic.torch.modules import rezero_weights, update_boost_strength
 
 from audio_transforms import (
     AddNoise,
@@ -53,9 +49,10 @@ from audio_transforms import (
     ToMelSpectrogramFromSTFT,
     ToSTFT,
     ToTensor,
-    Unsqueeze
+    Unsqueeze,
 )
-
+from nupic.torch.models.sparse_cnn import gsc_sparse_cnn, gsc_super_sparse_cnn
+from nupic.torch.modules import rezero_weights, update_boost_strength
 
 os.chdir(os.path.dirname(os.path.abspath(__file__)))
 
@@ -73,7 +70,7 @@ LABELS = tuple(["unknown", "silence", "zero", "one", "two", "three", "four",
                 "five", "six", "seven", "eight", "nine"])
 
 DATAPATH = Path("data")
-EXTRACTPATH = DATAPATH/"raw"
+EXTRACTPATH = DATAPATH / "raw"
 
 
 def train(model, loader, optimizer, criterion, device):
@@ -93,8 +90,7 @@ def train(model, loader, optimizer, criterion, device):
     :type device: :class:`torch.device`
     """
     model.train()
-    for batch_idx, (data, target) in enumerate(tqdm(loader, desc="Train",
-                                                    leave=False)):
+    for data, target in tqdm(loader, desc="Train", leave=False):
         data, target = data.to(device), target.to(device)
         optimizer.zero_grad()
         output = model(data)
@@ -128,7 +124,7 @@ def test(model, loader, criterion, device, desc="Test"):
             data, target = data.to(device), target.to(device)
             output = model(data)
             # sum up batch loss
-            loss += criterion(output, target, reduction='sum').item()
+            loss += criterion(output, target, reduction="sum").item()
             # get the index of the max log-probability
             pred = output.argmax(dim=1, keepdim=True)
             total_correct += pred.eq(target.view_as(pred)).sum().item()
@@ -157,8 +153,10 @@ def do_training(model, device):
     ]
 
     valid_dataset = dataset_from_wavfiles(
-        EXTRACTPATH/"valid", test_wavdata_to_tensor,
-        cachefilepath=DATAPATH/"gsc_valid.npz")
+        EXTRACTPATH / "valid",
+        test_wavdata_to_tensor,
+        cachefilepath=DATAPATH / "gsc_valid.npz",
+    )
     valid_loader = torch.utils.data.DataLoader(valid_dataset,
                                                batch_size=VALID_BATCH_SIZE)
 
@@ -182,14 +180,17 @@ def do_training(model, device):
                                              gamma=LEARNING_RATE_GAMMA)
     for epoch in range(EPOCHS):
         train_dataset = dataset_from_wavfiles(
-            EXTRACTPATH/"train", train_wavdata_to_tensor,
-            cachefilepath=DATAPATH/"gsc_train{}.npz".format(epoch),
-            silence_percentage=0.1)
+            EXTRACTPATH / "train",
+            train_wavdata_to_tensor,
+            cachefilepath=DATAPATH / "gsc_train{}.npz".format(epoch),
+            silence_percentage=0.1,
+        )
         train_loader = torch.utils.data.DataLoader(
             train_dataset,
             batch_size=(FIRST_EPOCH_BATCH_SIZE if epoch == 0
                         else TRAIN_BATCH_SIZE),
-            shuffle=True)
+            shuffle=True,
+        )
 
         train(model=model, loader=train_loader, optimizer=sgd,
               criterion=F.nll_loss, device=device)
@@ -220,9 +221,9 @@ def do_noise_test(model, device):
                                    ToTensor("mel_spectrogram", "input"),
                                    Unsqueeze("input")]
         cachefile = "gsc_test_noise{}.npz".format("{:.2f}".format(noise)[2:])
-        test_dataset = dataset_from_wavfiles(EXTRACTPATH/"test",
+        test_dataset = dataset_from_wavfiles(EXTRACTPATH / "test",
                                              noise_wavdata_to_tensor,
-                                             cachefilepath=DATAPATH/cachefile)
+                                             cachefilepath=DATAPATH / cachefile)
         test_loader = torch.utils.data.DataLoader(test_dataset,
                                                   batch_size=TEST_BATCH_SIZE)
         results = test(model=model, loader=test_loader, criterion=F.nll_loss,
@@ -267,8 +268,8 @@ def dataset_from_wavfiles(folder, wavdata_to_tensor, cachefilepath,
             if label.startswith("_"):
                 continue
 
-            for f in os.listdir(folder/label):
-                d = { "path": folder/label/f }
+            for f in os.listdir(folder / label):
+                d = {"path": folder / label / f}
                 wavdatas.append(d)
                 ids.append(label_to_id[label])
 
@@ -308,13 +309,13 @@ if __name__ == "__main__":
 
     # Use GPU if available
     device = torch.device("cuda" if torch.cuda.is_available() else "cpu")
-    modelclass = (gsc_super_sparse_cnn if args.supersparse else gsc_sparse_cnn)
+    modelclass = gsc_super_sparse_cnn if args.supersparse else gsc_sparse_cnn
     model = modelclass(pretrained=args.pretrained).to(device)
     print("Model:")
     print(model)
 
     if not args.pretrained:
-        cache_path = DATAPATH/"cached_model.pth"
+        cache_path = DATAPATH / "cached_model.pth"
 
         # Option 1: Train model now
         do_training(model, device)

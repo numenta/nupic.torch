@@ -24,10 +24,10 @@ Download, extract, and organize Google Speech Commands dataset
 """
 
 import os
-from pathlib import Path
 import re
 import shutil
 import tarfile
+from pathlib import Path
 
 import requests
 from tqdm import tqdm
@@ -37,8 +37,8 @@ os.chdir(os.path.dirname(os.path.abspath(__file__)))
 FILENAME = "speech_commands_v0.01.tar.gz"
 URL = "http://download.tensorflow.org/data/{}".format(FILENAME)
 DATAPATH = Path("data")
-TARFILEPATH = DATAPATH/FILENAME
-EXTRACTPATH = DATAPATH/"raw"
+TARFILEPATH = DATAPATH / FILENAME
+EXTRACTPATH = DATAPATH / "raw"
 
 
 def download_tarball():
@@ -46,7 +46,7 @@ def download_tarball():
     r = requests.get(URL, stream=True)
     r.raise_for_status()
 
-    total_size = int(r.headers.get("content-length", 0));
+    total_size = int(r.headers.get("content-length", 0))
     block_size = 1024
     wrote = 0
 
@@ -70,7 +70,7 @@ def extract_tarball():
     print("Extracting {} to {}".format(TARFILEPATH, EXTRACTPATH))
     with tarfile.open(TARFILEPATH) as tar:
         # This is slow to count.
-        tot = 64764 # len(list(tar.getnames()))
+        tot = 64764  # len(list(tar.getnames()))
         tar.extractall(EXTRACTPATH,
                        members=tqdm(tar, desc="Extracting", total=tot,
                                     unit="file", unit_scale=True, leave=False))
@@ -82,35 +82,35 @@ def organize_files():
                        "seven", "eight", "nine"]
 
     # Move unused categories into "unused" folder
-    files = os.listdir(EXTRACTPATH) # Get list before creating "unused" folder
-    destdir = EXTRACTPATH/"unused"
+    files = os.listdir(EXTRACTPATH)  # Get list before creating "unused" folder
+    destdir = EXTRACTPATH / "unused"
     os.mkdir(destdir)
     for name in files:
-        fullpath = EXTRACTPATH/name
+        fullpath = EXTRACTPATH / name
         if os.path.isdir(fullpath):
             if not (name in used_categories or name == "_background_noise_"):
-                newpath = destdir/name
+                newpath = destdir / name
                 shutil.move(fullpath, newpath)
 
     # Set aside validation and test sets
     for listfile, dest in [("validation_list.txt", "valid"),
                            ("testing_list.txt", "test")]:
-        destdir = EXTRACTPATH/dest
+        destdir = EXTRACTPATH / dest
         os.mkdir(destdir)
         for category in used_categories:
-            os.mkdir(destdir/category)
-        with open(EXTRACTPATH/listfile, "r") as f:
+            os.mkdir(destdir / category)
+        with open(EXTRACTPATH / listfile, "r") as f:
             for line in f.readlines():
                 line = line.rstrip()
                 category = re.match("(.*)/.*", line).groups()[0]
                 if category in used_categories:
-                    shutil.move(EXTRACTPATH/line, destdir/line)
+                    shutil.move(EXTRACTPATH / line, destdir / line)
 
     # The rest is for training
-    destdir = EXTRACTPATH/"train"
+    destdir = EXTRACTPATH / "train"
     os.mkdir(destdir)
     for category in used_categories:
-        shutil.move(str(EXTRACTPATH/category), destdir)
+        shutil.move(str(EXTRACTPATH / category), destdir)
 
 
 if __name__ == "__main__":
