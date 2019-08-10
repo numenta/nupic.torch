@@ -212,7 +212,7 @@ class KWinners2DTest(unittest.TestCase):
         self.assertEqual((out_grad == in_grad).sum(), 6)
         self.assertEqual(len(out_grad.nonzero()), 6)
 
-    def test_k_winners2d_module(self):
+    def test_k_winners2d_module_one(self):
         x = self.x2
 
         kw = KWinners2d(
@@ -243,6 +243,40 @@ class KWinners2DTest(unittest.TestCase):
         new_duty = torch.tensor([1.5000, 1.5000, 1.0000]) / 4.0
         diff = (kw.duty_cycle.reshape(-1) - new_duty).abs().sum()
         self.assertLessEqual(diff, 0.001)
+
+    def test_k_winners2d_module_two(self):
+        """
+        Test a series of calls on the module in training mode.
+        """
+
+        x = self.x2
+
+        expected = torch.zeros_like(x)
+        expected[0, 0, 1, 0] = 1.1
+        expected[0, 0, 1, 1] = 1.2
+        expected[0, 2, 1, 0] = 1.3
+        expected[1, 0, 0, 0] = 1.4
+        expected[1, 1, 0, 1] = 1.6
+        expected[1, 2, 1, 1] = 1.7
+
+        kw = KWinners2d(
+            percent_on=0.25,
+            channels=3,
+            k_inference_factor=0.5,
+            boost_strength=1.0,
+            boost_strength_factor=0.5,
+            duty_cycle_period=1000,
+        )
+
+        kw.train(mode=True)
+        result = kw(x)
+        result = kw(x)
+        result = kw(x)
+        result = kw(x)
+        result = kw(x)
+        result = kw(x)
+
+        self.assertTrue(result.eq(expected).all())
 
 
 if __name__ == "__main__":
