@@ -19,6 +19,7 @@ Dataset download size: 1.8 GB
 
 ```
 pip install git+https://github.com/numenta/nupic.torch.git#egg=nupic.torch
+pip install -r requirements.txt
 python download_preprocessed_data.py
 python run_gsc_model.py
 ```
@@ -29,6 +30,7 @@ Dataset download size: 1.5 GB
 
 ```
 pip install git+https://github.com/numenta/nupic.torch.git#egg=nupic.torch
+pip install -r requirements.txt
 python download_raw_data.py
 python run_gsc_model.py
 ```

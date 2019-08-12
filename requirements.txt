@@ -21,6 +21,3 @@
 # ------------------------------------------------------------------------------
 numpy
 torch
-librosa  # Required for examples
-requests  # Required for examples
-tqdm  # Required for examples
