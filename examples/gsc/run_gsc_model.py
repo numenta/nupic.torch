@@ -298,7 +298,7 @@ if __name__ == "__main__":
     parser = argparse.ArgumentParser()
     parser.add_argument("--supersparse", action="store_true")
     parser.add_argument("--pretrained", action="store_true")
-    parser.add_argument("--seed", type=int, default=-1)
+    parser.add_argument("--seed", type=int, default=42)
 
     args = parser.parse_args()
 
@@ -306,6 +306,11 @@ if __name__ == "__main__":
         random.seed(args.seed)
         torch.manual_seed(args.seed)
         np.random.seed(args.seed)
+        if torch.cuda.is_available():
+            torch.cuda.manual_seed_all(args.seed)
+        if torch.backends.cudnn.is_available():
+            torch.backends.cudnn.deterministic = True
+            torch.backends.cudnn.benchmark = False
 
     # Use GPU if available
     device = torch.device("cuda" if torch.cuda.is_available() else "cpu")

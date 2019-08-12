@@ -41,4 +41,4 @@ python run_gsc_model.py --pretrained --supersparse --seed 42
 
 - `--pretrained`: Use pretrained model rather than training locally
 - `--supersparse`: Use "super sparse" network rather than basic sparse network
-- `--seed`: Random seed
+- `--seed`: Random seed. Set to -1 to make learning nondeterministic and faster.
