@@ -298,7 +298,7 @@ if __name__ == "__main__":
     parser = argparse.ArgumentParser()
     parser.add_argument("--supersparse", action="store_true")
     parser.add_argument("--pretrained", action="store_true")
-    parser.add_argument("--seed", type=int, default=42)
+    parser.add_argument("--seed", type=int, default=-1)
 
     args = parser.parse_args()
 
