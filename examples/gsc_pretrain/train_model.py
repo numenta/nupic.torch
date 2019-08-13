@@ -204,6 +204,7 @@ if __name__ == "__main__":
     do_training(model, device)
 
     tmp = DATAPATH / "tmp.pth"
+    model.cpu()
     torch.save(model.state_dict(), tmp)
 
     # Compute final filename
