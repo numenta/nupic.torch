@@ -78,3 +78,9 @@ pep8-naming
 
 # Check string quotes
 flake8-quotes
+
+# Libraries used in examples. When isort runs, these need to be installed,
+# otherwise isort will sort imports of these packages' modules incorrectly.
+librosa
+requests
+tqdm
