@@ -41,14 +41,14 @@ class KWinnersTest(unittest.TestCase):
 
         # Batch size 2
         x = torch.ones((2, 7))
-        x[0, 1] = 1.2
-        x[0, 2] = 1.1
-        x[0, 3] = 1.3
-        x[0, 5] = 1.5
-        x[1, 0] = 1.1
-        x[1, 2] = 1.2
-        x[1, 4] = 1.3
-        x[1, 6] = 1.2
+        x[0, 1] = 1.20
+        x[0, 2] = 1.10
+        x[0, 3] = 1.30
+        x[0, 5] = 1.50
+        x[1, 0] = 1.11
+        x[1, 2] = 1.21
+        x[1, 4] = 1.31
+        x[1, 6] = 1.22
         self.x = x
         self.gradient = torch.rand(x.shape)
 
@@ -58,12 +58,12 @@ class KWinnersTest(unittest.TestCase):
 
         # Batch size 2
         x2 = torch.ones((2, 6))
-        x2[0, 0] = 1.5
-        x2[0, 2] = 1.1
-        x2[0, 3] = 1.3
-        x2[1, 0] = 1.1
-        x2[1, 2] = 1.2
-        x2[1, 3] = 1.6
+        x2[0, 0] = 1.50
+        x2[0, 2] = 1.10
+        x2[0, 3] = 1.30
+        x2[1, 0] = 1.11
+        x2[1, 2] = 1.20
+        x2[1, 3] = 1.60
         self.x2 = x2
 
         # Unequal duty cycle for x2.
@@ -78,10 +78,10 @@ class KWinnersTest(unittest.TestCase):
 
         # Batch size 2, but with negative numbers.
         x3 = torch.ones((2, 6))
-        x3[0, 1] = -1.2
-        x3[0, 2] = 1.2
-        x3[1, 1] = 1.2
-        x3[1, 2] = -1.2
+        x3[0, 1] = -1.20
+        x3[0, 2] = 1.20
+        x3[1, 1] = 1.21
+        x3[1, 2] = -1.21
         self.x3 = x3
 
         # Unequal duty cycle for x3.
@@ -92,14 +92,14 @@ class KWinnersTest(unittest.TestCase):
 
         # Batch size 1.
         x4 = torch.ones((1, 10))
-        x4[0, 2] = 1.2
-        x4[0, 3] = 1.2
-        x4[0, 4] = 1.2
-        x4[0, 5] = 1.2
-        x4[0, 6] = 1.3
-        x4[0, 7] = 1.3
-        x4[0, 8] = 1.3
-        x4[0, 9] = 1.3
+        x4[0, 2] = 1.20
+        x4[0, 3] = 1.21
+        x4[0, 4] = 1.22
+        x4[0, 5] = 1.23
+        x4[0, 6] = 1.30
+        x4[0, 7] = 1.31
+        x4[0, 8] = 1.32
+        x4[0, 9] = 1.33
         self.x4 = x4
 
         # All equal duty cycle for x.
@@ -119,12 +119,12 @@ class KWinnersTest(unittest.TestCase):
         result = F.KWinners.forward(ctx, x, self.duty_cycle, k=3, boost_strength=0.0)
 
         expected = torch.zeros_like(x)
-        expected[0, 1] = 1.2
-        expected[0, 3] = 1.3
-        expected[0, 5] = 1.5
-        expected[1, 2] = 1.2
-        expected[1, 4] = 1.3
-        expected[1, 6] = 1.2
+        expected[0, 1] = x[0, 1]
+        expected[0, 3] = x[0, 3]
+        expected[0, 5] = x[0, 5]
+        expected[1, 2] = x[1, 2]
+        expected[1, 4] = x[1, 4]
+        expected[1, 6] = x[1, 6]
 
         self.assertEqual(result.shape, expected.shape)
         self.assertTrue(result.eq(expected).all())
@@ -162,12 +162,12 @@ class KWinnersTest(unittest.TestCase):
         result = F.KWinners.forward(ctx, x, self.duty_cycle2, k=3, boost_strength=0.0)
 
         expected = torch.zeros_like(x)
-        expected[0, 0] = 1.5
-        expected[0, 2] = 1.1
-        expected[0, 3] = 1.3
-        expected[1, 0] = 1.1
-        expected[1, 2] = 1.2
-        expected[1, 3] = 1.6
+        expected[0, 0] = x[0, 0]
+        expected[0, 2] = x[0, 2]
+        expected[0, 3] = x[0, 3]
+        expected[1, 0] = x[1, 0]
+        expected[1, 2] = x[1, 2]
+        expected[1, 3] = x[1, 3]
 
         self.assertEqual(result.shape, expected.shape)
         self.assertTrue(result.eq(expected).all())
@@ -176,12 +176,12 @@ class KWinnersTest(unittest.TestCase):
         result = F.KWinners.forward(ctx, x, self.duty_cycle2, k=3, boost_strength=1.0)
 
         expected = torch.zeros_like(x)
-        expected[0, 0] = 1.5
-        expected[0, 1] = 1.0
-        expected[0, 3] = 1.3
-        expected[1, 1] = 1.0
-        expected[1, 3] = 1.6
-        expected[1, 5] = 1.0
+        expected[0, 0] = x[0, 0]
+        expected[0, 1] = x[0, 1]
+        expected[0, 3] = x[0, 3]
+        expected[1, 1] = x[1, 1]
+        expected[1, 3] = x[1, 3]
+        expected[1, 5] = x[1, 5]
 
         self.assertEqual(result.shape, expected.shape)
         self.assertTrue(result.eq(expected).all())
@@ -189,12 +189,12 @@ class KWinnersTest(unittest.TestCase):
         # Test forward again with boost factor from 2 to 10. Should give save result
         # given the differing duty cycles.
         expected = torch.zeros_like(x)
-        expected[0, 1] = 1.0
-        expected[0, 3] = 1.3
-        expected[0, 5] = 1.0
-        expected[1, 1] = 1.0
-        expected[1, 3] = 1.6
-        expected[1, 5] = 1.0
+        expected[0, 1] = x[0, 1]
+        expected[0, 3] = x[0, 3]
+        expected[0, 5] = x[0, 5]
+        expected[1, 1] = x[1, 1]
+        expected[1, 3] = x[1, 3]
+        expected[1, 5] = x[1, 5]
 
         for b in range(2, 10):
 
@@ -216,11 +216,10 @@ class KWinnersTest(unittest.TestCase):
         result = F.KWinners.forward(ctx, x, self.duty_cycle3, k=2, boost_strength=0.0)
 
         expected = torch.zeros_like(x)
-        expected[0, 2] = 1.2
-        expected[0, 3] = 1.0
-        expected[1, 1] = 1.2
-        expected[1, 5] = 1.0
-
+        expected[0, 0] = x[0, 0]
+        expected[0, 2] = x[0, 2]
+        expected[1, 0] = x[1, 0]
+        expected[1, 1] = x[1, 1]
         self.assertEqual(result.shape, expected.shape)
         self.assertTrue(result.eq(expected).all())
 
@@ -228,10 +227,10 @@ class KWinnersTest(unittest.TestCase):
         # result as the negative numbers will never be in the top k and the non-one
         # values have very large duty cycles.
         expected = torch.zeros_like(x)
-        expected[0, 3] = 1.0
-        expected[0, 5] = 1.0
-        expected[1, 1] = 1.2
-        expected[1, 5] = 1.0
+        expected[0, 0] = x[0, 0]
+        expected[0, 3] = x[0, 3]
+        expected[1, 0] = x[1, 0]
+        expected[1, 1] = x[1, 1]
 
         for b in range(1, 10):
 
@@ -261,7 +260,7 @@ class KWinnersTest(unittest.TestCase):
         result = F.KWinners.forward(ctx, x, self.duty_cycle4, k=1, boost_strength=1)
 
         expected = torch.zeros_like(x)
-        expected[0, -1] = 1.3
+        expected[0, -1] = x[0, -1]
 
         self.assertEqual(result.shape, expected.shape)
         self.assertTrue(result.eq(expected).all())
@@ -294,12 +293,12 @@ class KWinnersTest(unittest.TestCase):
 
         # Expect 3 winners per batch (1.5 * 33% of 6 is 1 / 2 of 6)
         expected = torch.zeros_like(x)
-        expected[0, 0] = 1.5
-        expected[0, 2] = 1.1
-        expected[0, 3] = 1.3
-        expected[1, 0] = 1.1
-        expected[1, 2] = 1.2
-        expected[1, 3] = 1.6
+        expected[0, 0] = x[0, 0]
+        expected[0, 2] = x[0, 2]
+        expected[0, 3] = x[0, 3]
+        expected[1, 0] = x[1, 0]
+        expected[1, 2] = x[1, 2]
+        expected[1, 3] = x[1, 3]
         result = kw(x)
 
         self.assertEqual(result.shape, expected.shape)
@@ -317,10 +316,10 @@ class KWinnersTest(unittest.TestCase):
 
         # Expect 2 winners per batch (33% of 6)
         expected = torch.zeros_like(x)
-        expected[0, 0] = 1.5
-        expected[0, 3] = 1.3
-        expected[1, 2] = 1.2
-        expected[1, 3] = 1.6
+        expected[0, 0] = x[0, 0]
+        expected[0, 3] = x[0, 3]
+        expected[1, 2] = x[1, 2]
+        expected[1, 3] = x[1, 3]
         result = kw(x)
 
         self.assertEqual(result.shape, expected.shape)
@@ -335,10 +334,10 @@ class KWinnersTest(unittest.TestCase):
         result = kw(x)
 
         expected = torch.zeros_like(x)
-        expected[0, 1] = 1.0
-        expected[0, 5] = 1.0
-        expected[1, 1] = 1.0
-        expected[1, 5] = 1.0
+        expected[0, 1] = x[0, 1]
+        expected[0, 4] = x[0, 4]
+        expected[1, 1] = x[1, 1]
+        expected[1, 4] = x[1, 4]
 
         self.assertEqual(result.shape, expected.shape)
         self.assertTrue(result.eq(expected).all())
@@ -353,10 +352,10 @@ class KWinnersTest(unittest.TestCase):
         n = 6
 
         expected = torch.zeros_like(x)
-        expected[0, 0] = 1.5
-        expected[0, 5] = 1.0
-        expected[1, 2] = 1.2
-        expected[1, 3] = 1.6
+        expected[0, 0] = x[0, 0]
+        expected[0, 4] = x[0, 4]
+        expected[1, 2] = x[1, 2]
+        expected[1, 3] = x[1, 3]
 
         kw = KWinners(
             n,

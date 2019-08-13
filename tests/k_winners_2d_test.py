@@ -42,26 +42,34 @@ class KWinners2DTest(unittest.TestCase):
 
         # Batch size 1
         x = torch.ones((1, 3, 2, 2))
-        x[0, 0, 1, 0] = 1.1
-        x[0, 0, 1, 1] = 1.2
-        x[0, 1, 0, 1] = 1.2
-        x[0, 2, 1, 0] = 1.3
+        x[0, 0, 1, 0] = 1.10
+        x[0, 0, 1, 1] = 1.20
+        x[0, 1, 0, 1] = 1.21
+        x[0, 2, 1, 0] = 1.30
         self.x = x
         self.gradient = torch.rand(x.shape)
 
         # Batch size 2
         x = torch.ones((2, 3, 2, 2))
+        x[0, 0, 1, 0] = 1.10
+        x[0, 0, 1, 1] = 1.20
+        x[0, 1, 0, 1] = 1.21
+        x[0, 2, 1, 0] = 1.30
+
+        x[1, 0, 0, 0] = 1.40
+        x[1, 1, 0, 0] = 1.50
+        x[1, 1, 0, 1] = 1.60
+        x[1, 2, 1, 1] = 1.70
+        self.x2 = x
+        self.gradient2 = torch.rand(x.shape)
+
+        # Tie-breaking tests
+        x = torch.ones((1, 3, 2, 2))
         x[0, 0, 1, 0] = 1.1
         x[0, 0, 1, 1] = 1.2
         x[0, 1, 0, 1] = 1.2
         x[0, 2, 1, 0] = 1.3
-
-        x[1, 0, 0, 0] = 1.4
-        x[1, 1, 0, 0] = 1.5
-        x[1, 1, 0, 1] = 1.6
-        x[1, 2, 1, 1] = 1.7
-        self.x2 = x
-        self.gradient2 = torch.rand(x.shape)
+        self.x3 = x
 
         # All equal
         self.duty_cycle = torch.zeros((1, 3, 1, 1))
@@ -76,10 +84,10 @@ class KWinners2DTest(unittest.TestCase):
         result = F.KWinners2d.forward(ctx, x, self.duty_cycle, k=4, boost_strength=0.0)
 
         expected = torch.zeros_like(x)
-        expected[0, 0, 1, 0] = 1.1
-        expected[0, 0, 1, 1] = 1.2
-        expected[0, 1, 0, 1] = 1.2
-        expected[0, 2, 1, 0] = 1.3
+        expected[0, 0, 1, 0] = x[0, 0, 1, 0]
+        expected[0, 0, 1, 1] = x[0, 0, 1, 1]
+        expected[0, 1, 0, 1] = x[0, 1, 0, 1]
+        expected[0, 2, 1, 0] = x[0, 2, 1, 0]
 
         self.assertEqual(result.shape, expected.shape)
 
@@ -87,7 +95,7 @@ class KWinners2DTest(unittest.TestCase):
         self.assertEqual(num_correct, result.reshape(-1).size()[0])
 
         indices = ctx.saved_tensors[0].reshape(-1)
-        expected_indices = torch.tensor([2, 3, 10, 5])
+        expected_indices = torch.tensor([10, 5, 3, 2])
         num_correct = (indices == expected_indices).sum()
         self.assertEqual(num_correct, 4)
 
@@ -114,9 +122,9 @@ class KWinners2DTest(unittest.TestCase):
         result = F.KWinners2d.forward(ctx, x, self.duty_cycle, k=3, boost_strength=0.0)
 
         expected = torch.zeros_like(x)
-        expected[0, 0, 1, 1] = 1.2
-        expected[0, 1, 0, 1] = 1.2
-        expected[0, 2, 1, 0] = 1.3
+        expected[0, 0, 1, 1] = x[0, 0, 1, 1]
+        expected[0, 1, 0, 1] = x[0, 1, 0, 1]
+        expected[0, 2, 1, 0] = x[0, 2, 1, 0]
 
         self.assertEqual(result.shape, expected.shape)
 
@@ -124,7 +132,7 @@ class KWinners2DTest(unittest.TestCase):
         self.assertEqual(num_correct, result.reshape(-1).size()[0])
 
         indices = ctx.saved_tensors[0].reshape(-1)
-        expected_indices = torch.tensor([3, 10, 5])
+        expected_indices = torch.tensor([10, 5, 3])
         num_correct = (indices == expected_indices).sum()
         self.assertEqual(num_correct, 3)
 
@@ -151,14 +159,14 @@ class KWinners2DTest(unittest.TestCase):
         result = F.KWinners2d.forward(ctx, x, self.duty_cycle, k=4, boost_strength=0.0)
 
         expected = torch.zeros_like(x)
-        expected[0, 0, 1, 0] = 1.1
-        expected[0, 0, 1, 1] = 1.2
-        expected[0, 1, 0, 1] = 1.2
-        expected[0, 2, 1, 0] = 1.3
-        expected[1, 0, 0, 0] = 1.4
-        expected[1, 1, 0, 0] = 1.5
-        expected[1, 1, 0, 1] = 1.6
-        expected[1, 2, 1, 1] = 1.7
+        expected[0, 0, 1, 0] = x[0, 0, 1, 0]
+        expected[0, 0, 1, 1] = x[0, 0, 1, 1]
+        expected[0, 1, 0, 1] = x[0, 1, 0, 1]
+        expected[0, 2, 1, 0] = x[0, 2, 1, 0]
+        expected[1, 0, 0, 0] = x[1, 0, 0, 0]
+        expected[1, 1, 0, 0] = x[1, 1, 0, 0]
+        expected[1, 1, 0, 1] = x[1, 1, 0, 1]
+        expected[1, 2, 1, 1] = x[1, 2, 1, 1]
 
         self.assertEqual(result.shape, expected.shape)
 
@@ -166,7 +174,7 @@ class KWinners2DTest(unittest.TestCase):
         self.assertEqual(num_correct, result.reshape(-1).size()[0])
 
         indices = ctx.saved_tensors[0]
-        expected_indices = torch.tensor([[2, 3, 10, 5], [0, 4, 5, 11]])
+        expected_indices = torch.tensor([[10, 5, 3, 2], [11, 5, 4, 0]])
         num_correct = (indices == expected_indices).sum()
         self.assertEqual(num_correct, 8)
 
@@ -187,12 +195,12 @@ class KWinners2DTest(unittest.TestCase):
         result = F.KWinners2d.forward(ctx, x, self.duty_cycle, k=3, boost_strength=0.0)
 
         expected = torch.zeros_like(x)
-        expected[0, 0, 1, 1] = 1.2
-        expected[0, 1, 0, 1] = 1.2
-        expected[0, 2, 1, 0] = 1.3
-        expected[1, 1, 0, 0] = 1.5
-        expected[1, 1, 0, 1] = 1.6
-        expected[1, 2, 1, 1] = 1.7
+        expected[0, 0, 1, 1] = x[0, 0, 1, 1]
+        expected[0, 1, 0, 1] = x[0, 1, 0, 1]
+        expected[0, 2, 1, 0] = x[0, 2, 1, 0]
+        expected[1, 1, 0, 0] = x[1, 1, 0, 0]
+        expected[1, 1, 0, 1] = x[1, 1, 0, 1]
+        expected[1, 2, 1, 1] = x[1, 2, 1, 1]
 
         self.assertEqual(result.shape, expected.shape)
 
@@ -200,7 +208,7 @@ class KWinners2DTest(unittest.TestCase):
         self.assertEqual(num_correct, result.reshape(-1).size()[0])
 
         indices = ctx.saved_tensors[0]
-        expected_indices = torch.tensor([[3, 10, 5], [4, 5, 11]])
+        expected_indices = torch.tensor([[10, 5, 3], [11, 5, 4]])
         num_correct = (indices == expected_indices).sum()
         self.assertEqual(num_correct, 6)
 
@@ -211,6 +219,12 @@ class KWinners2DTest(unittest.TestCase):
         in_grad = self.gradient2.reshape(2, -1)
         self.assertEqual((out_grad == in_grad).sum(), 6)
         self.assertEqual(len(out_grad.nonzero()), 6)
+
+    def test_tie_braking(self):
+        """
+        Test k-winners with multiple
+        :return:
+        """
 
     def test_k_winners2d_module_one(self):
         x = self.x2
@@ -225,14 +239,14 @@ class KWinners2DTest(unittest.TestCase):
         )
 
         expected = torch.zeros_like(x)
-        expected[0, 0, 1, 0] = 1.1
-        expected[0, 0, 1, 1] = 1.2
-        expected[0, 1, 0, 1] = 1.2
-        expected[0, 2, 1, 0] = 1.3
-        expected[1, 0, 0, 0] = 1.4
-        expected[1, 1, 0, 0] = 1.5
-        expected[1, 1, 0, 1] = 1.6
-        expected[1, 2, 1, 1] = 1.7
+        expected[0, 0, 1, 0] = x[0, 0, 1, 0]
+        expected[0, 0, 1, 1] = x[0, 0, 1, 1]
+        expected[0, 1, 0, 1] = x[0, 1, 0, 1]
+        expected[0, 2, 1, 0] = x[0, 2, 1, 0]
+        expected[1, 0, 0, 0] = x[1, 0, 0, 0]
+        expected[1, 1, 0, 0] = x[1, 1, 0, 0]
+        expected[1, 1, 0, 1] = x[1, 1, 0, 1]
+        expected[1, 2, 1, 1] = x[1, 2, 1, 1]
 
         result = kw(x)
         self.assertEqual(result.shape, expected.shape)
@@ -252,12 +266,12 @@ class KWinners2DTest(unittest.TestCase):
         x = self.x2
 
         expected = torch.zeros_like(x)
-        expected[0, 0, 1, 0] = 1.1
-        expected[0, 0, 1, 1] = 1.2
-        expected[0, 2, 1, 0] = 1.3
-        expected[1, 0, 0, 0] = 1.4
-        expected[1, 1, 0, 1] = 1.6
-        expected[1, 2, 1, 1] = 1.7
+        expected[0, 0, 1, 0] = x[0, 0, 1, 0]
+        expected[0, 0, 1, 1] = x[0, 0, 1, 1]
+        expected[0, 2, 1, 0] = x[0, 2, 1, 0]
+        expected[1, 0, 0, 0] = x[1, 0, 0, 0]
+        expected[1, 1, 0, 1] = x[1, 1, 0, 1]
+        expected[1, 2, 1, 1] = x[1, 2, 1, 1]
 
         kw = KWinners2d(
             percent_on=0.25,
