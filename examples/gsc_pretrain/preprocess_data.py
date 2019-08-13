@@ -31,7 +31,6 @@ import numpy as np
 from tqdm import tqdm
 
 from audio_transforms import (
-    AddNoise,
     ChangeAmplitude,
     ChangeSpeedAndPitchAudio,
     DeleteSTFT,
