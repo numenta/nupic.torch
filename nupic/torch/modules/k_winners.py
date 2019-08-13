@@ -89,7 +89,8 @@ class KWinnersBase(nn.Module, metaclass=abc.ABCMeta):
         self.k_inference = 0
 
         # Boosting related parameters
-        self.boost_strength = boost_strength
+        self.register_buffer("boost_strength", torch.tensor(boost_strength,
+                                                            dtype=torch.float))
         self.boost_strength_factor = boost_strength_factor
         self.duty_cycle_period = duty_cycle_period
 
@@ -122,7 +123,7 @@ class KWinnersBase(nn.Module, metaclass=abc.ABCMeta):
         training.
         """
         if self.training:
-            self.boost_strength = self.boost_strength * self.boost_strength_factor
+            self.boost_strength *= self.boost_strength_factor
 
     def entropy(self):
         """Returns the current total entropy of this layer."""
