@@ -385,6 +385,37 @@ class KWinnersTest(unittest.TestCase):
         # Test with mod.training = False.
         kw.train(mode=False)
 
+    def test_tie_breaking(self):
+        """
+        Test k-winners with tie-breaking
+        """
+        x = self.x2
+        # Force tie breaking
+        x[0, 5] = x[0, 1]
+
+        ctx = TestContext()
+
+        # Expected with [0, 1] winning the tie-break (pytorch 1.2)
+        expected1 = torch.zeros_like(x)
+        expected1[0, 0] = x[0, 0]
+        expected1[0, 1] = x[0, 1]
+        expected1[0, 3] = x[0, 3]
+        expected1[1, 1] = x[1, 1]
+        expected1[1, 3] = x[1, 3]
+        expected1[1, 5] = x[1, 5]
+
+        # Expected with [0, 5] winning the tie-break (pytorch 1.1)
+        expected2 = torch.zeros_like(x)
+        expected2[0, 0] = x[0, 0]
+        expected2[0, 3] = x[0, 3]
+        expected2[0, 5] = x[0, 5]
+        expected2[1, 1] = x[1, 1]
+        expected2[1, 3] = x[1, 3]
+        expected2[1, 5] = x[1, 5]
+
+        result = F.KWinners.forward(ctx, x, self.duty_cycle2, k=3, boost_strength=1.0)
+        self.assertTrue(result.eq(expected1).all() or result.eq(expected2).all())
+
 
 if __name__ == "__main__":
     unittest.main()
