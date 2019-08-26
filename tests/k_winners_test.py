@@ -20,8 +20,9 @@
 # ----------------------------------------------------------------------
 import unittest
 
-import nupic.torch.functions as F
 import torch
+
+import nupic.torch.functions as F
 from nupic.torch.modules import KWinners
 
 
