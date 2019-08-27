@@ -8,7 +8,7 @@ Before considering contribution, we hope you'll try to understand the biology be
 
 ## File Bugs
 
-If you found a bug, [please report it](https://github.com/numenta/nupic.torch/issues/new?template=new-nupic-torch-bug.md) in as much detail as possible. Copy / paste of console text is better than screenshots of console logs.
+If you found a bug, [please report it](https://github.com/numenta/nupic.torch/issues/new) in as much detail as possible. Copy / paste of console text is better than screenshots of console logs.
 
 ## Pull Requests
 
