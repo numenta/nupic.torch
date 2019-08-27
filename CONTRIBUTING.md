@@ -30,7 +30,7 @@ See our release process at [RELEASE.md](RELEASE.md).
 
 ### Run `flake8` before creating a PR
 
-To run [Flake8](http://flake8.pycqa.org/en/latest/), install `requirements-dev.txt` before invoking `flake8`. This enforces standard PEP8, enforced via , which runs on every PR.
+To run [Flake8](http://flake8.pycqa.org/en/latest/), install `requirements-dev.txt` before invoking `flake8`. This enforces standard PEP8, and runs to validate all pull requests.
 
 ### Create Unit tests
 
