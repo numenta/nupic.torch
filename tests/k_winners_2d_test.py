@@ -41,7 +41,7 @@ class KWinners2DTest(unittest.TestCase):
         # Tests will use 3 filters and image width, height = 2 X 2
 
         # Batch size 1
-        x = torch.rand(1, 3, 2, 2)
+        x = torch.rand(1, 3, 2, 2) / 2.0
         x[0, 0, 1, 0] = 1.10
         x[0, 0, 1, 1] = 1.20
         x[0, 1, 0, 1] = 1.21
@@ -50,7 +50,7 @@ class KWinners2DTest(unittest.TestCase):
         self.gradient = torch.rand(x.shape)
 
         # Batch size 2
-        x = torch.rand(2, 3, 2, 2)
+        x = torch.rand(2, 3, 2, 2) / 2.0
         x[0, 0, 1, 0] = 1.10
         x[0, 0, 1, 1] = 1.20
         x[0, 1, 0, 1] = 1.21
