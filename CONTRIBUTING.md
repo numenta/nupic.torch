@@ -16,7 +16,7 @@ Pull Requests should provide unit tests and address an [issue](https://github.co
 
 ## Our Community
 
-There are many people interested Hierarchical Temporal Memory. You can find them on [HTM Forum](https://discourse.numenta.org/). Please post questions about this project in the [Machine Learning](https://discourse.numenta.org/c/engineering/machine-learning) subforum. 
+There are many people interested Hierarchical Temporal Memory. You can find them on [HTM Forum](https://discourse.numenta.org/). Please post questions about `nupic.torch` in the [Machine Learning](https://discourse.numenta.org/c/engineering/machine-learning) subforum. 
 
 ## Committers
 
