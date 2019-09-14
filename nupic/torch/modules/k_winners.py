@@ -119,11 +119,10 @@ class KWinnersBase(nn.Module, metaclass=abc.ABCMeta):
         raise NotImplementedError
 
     def update_boost_strength(self):
-        """Update boost strength using given strength factor during
-        training.
+        """Update boost strength by multiplying by the boost strength factor.
+        This is typically done during training at the beginning of each epoch.
         """
-        if self.training:
-            self.boost_strength *= self.boost_strength_factor
+        self.boost_strength *= self.boost_strength_factor
 
     def entropy(self):
         """Returns the current total entropy of this layer."""
