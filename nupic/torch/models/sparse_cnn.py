@@ -124,7 +124,7 @@ class GSCSparseCNN(nn.Sequential):
                  linear_units=1000,
                  linear_percent_on=0.1,
                  linear_weight_sparsity=0.4,
-                 boost_strength=1.5,
+                 boost_strength=1.67,
                  boost_strength_factor=0.9,
                  k_inference_factor=1.5,
                  duty_cycle_period=1000

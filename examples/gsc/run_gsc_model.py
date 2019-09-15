@@ -192,11 +192,11 @@ def do_training(model, device):
             shuffle=True,
         )
 
+        model.apply(update_boost_strength)
         train(model=model, loader=train_loader, optimizer=sgd,
               criterion=F.nll_loss, device=device)
         lr_scheduler.step()
         model.apply(rezero_weights)
-        model.apply(update_boost_strength)
 
         results = test(model=model, loader=valid_loader, criterion=F.nll_loss,
                        device=device)
