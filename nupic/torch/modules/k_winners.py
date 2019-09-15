@@ -29,7 +29,8 @@ from nupic.torch.duty_cycle_metrics import binary_entropy, max_entropy
 
 
 def update_boost_strength(m):
-    """Function used to update KWinner modules boost strength after each epoch.
+    """Function used to update KWinner modules boost strength. This is typically done
+    during training at the beginning of each epoch.
 
     Call using :meth:`torch.nn.Module.apply` after each epoch if required
     For example: ``m.apply(update_boost_strength)``
