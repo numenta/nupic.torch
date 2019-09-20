@@ -10,6 +10,10 @@ To install from local source code:
     
     python setup.py develop
 
+Or using conda:
+
+    conda env create
+
 ### Test
 
 To run all tests:
