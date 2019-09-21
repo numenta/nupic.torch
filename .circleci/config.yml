@@ -27,8 +27,6 @@ jobs:
       - restore_cache:
           key: source-cache-{{ .Environment.CIRCLE_SHA1 }}
       - checkout
-      - run: echo TAG ${CIRCLE_TAG}
-      - run: echo BRANCH ${CIRCLE_BRANCH}
       - run:
           name: Validate contributor license
           command: ci/validate-contributor.sh
@@ -107,27 +105,24 @@ jobs:
           command: python setup.py bdist_wheel
       - store_artifacts:
           path: dist
-      - save_cache:
-          key: pip-dist-v1-{{ arch }}
-          paths:
-            - ~/nupic.torch/dist
+      - persist_to_workspace:
+          root: .
+          paths: dist
 
   deploy:
     working_directory: ~/nupic.torch
     docker:
       - image: circleci/python:3.6
     steps:
-      - restore_cache:
-          key: source-cache-{{ .Environment.CIRCLE_SHA1 }}
-      - restore_cache:
-          key: pip-dist-v1-{{ arch }}
-      - run:  pip install twine --user
-      - run: echo "DEPLOY TIME"
-      # - run:
-      #     name: Deploy to PYPI
-      #     environment:
-      #       VERBOSE: 1
-      #     command: python -m twine upload --repository-url https://test.pypi.org/legacy/ dist/*
+      - attach_workspace:
+          at: .
+      - run:
+          name: Deploy to PYPI
+          environment:
+            VERBOSE: 1
+          command: |
+            pip install twine --user
+            python -m twine upload dist/*
 
 workflows:
   version: 2
@@ -149,10 +144,6 @@ workflows:
             - check_style
             - test
       - deploy:
+          context: deploy-pypi
           requires:
             - build
-          filters:
-            tags:
-              only: /[0-9]+(\.[0-9]+)*/
-            branches:
-              ignore: /.*/
