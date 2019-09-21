@@ -1,0 +1,44 @@
+# This file may be used to create an environment using:
+# $ conda create --name <env> --file <this file>
+# platform: osx-64
+name: nupic.torch
+channels:
+  - defaults
+  - conda-forge
+  - pytorch
+
+dependencies:
+  - python=3.7
+  - pip
+
+  # See requirements.txt
+  - pytorch==1.2
+
+  # See requirements-dev.txt
+  - pytest-runner
+  - pytest
+  - black
+  - isort
+  - flake8
+  - flake8-black
+  - flake8-bugbear
+  - flake8-builtins
+  - flake8-comprehensions
+  - flake8-copyright
+  - flake8-mutable
+  - flake8-print
+  - pep8-naming
+  - flake8-quotes
+
+  - pip:
+      # Dependencies not available in conda
+      # See requirements-dev.txt
+      - docformatter
+      - flake8-breakpoint
+      - flake8-mypy
+      - flake8-isort
+      - flake8-fixme
+
+      # Install nupic.torch in develop mode
+      - -e .
+

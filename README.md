@@ -17,7 +17,11 @@ To install from local source code:
     
     python setup.py develop
 
-## Test
+Or using conda:
+
+    conda env create
+
+### Test
 
 To run all tests:
 
