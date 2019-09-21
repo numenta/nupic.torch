@@ -127,7 +127,7 @@ jobs:
 workflows:
   version: 2
 
-  validate-build-test-deploy:
+  validate-build-test:
     jobs:
       - validate_contributor
       - install_dependencies:
