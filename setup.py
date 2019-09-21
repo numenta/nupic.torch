@@ -65,6 +65,7 @@ setup(
         "Topic :: Scientific/Engineering :: Artificial Intelligence",
     ],
     project_urls={
+        'Documentation': "https://nupictorch.readthedocs.io",
         "Bug Reports": "https://github.com/numenta/nupic.torch/issues",
         "Source": "https://github.com/numenta/nupic.torch",
     },
