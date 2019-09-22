@@ -21,27 +21,24 @@ version: 2
 
 jobs:
   validate_contributor:
-    working_directory: ~/nupic.torch
+    working_directory: ~/nta/nupic.torch
     machine: true
     steps:
-      - restore_cache:
-          key: source-cache-{{ .Environment.CIRCLE_SHA1 }}
       - checkout
       - run:
           name: Validate contributor license
           command: ci/validate-contributor.sh
-      - save_cache:
-          key: source-cache-{{ .Environment.CIRCLE_SHA1 }}
-          paths:
-            - ~/nupic.torch
+      - persist_to_workspace:
+          root: ~/nta
+          paths: nupic.torch
 
   install_dependencies:
-    working_directory: ~/nupic.torch
+    working_directory: ~/nta/nupic.torch
     docker:
       - image: circleci/python:3.6
     steps:
-      - restore_cache:
-          key: source-cache-{{ .Environment.CIRCLE_SHA1 }}
+      - attach_workspace:
+          at: ~/nta
       - restore_cache:
           key: pip-cache-v1-{{ arch }}-{{ checksum "requirements.txt" }}-{{ checksum "requirements-dev.txt" }}
       - run: pip install --user flake8-formatter-junit-xml
@@ -54,12 +51,12 @@ jobs:
             - ~/.cache
 
   check_style:
-    working_directory: ~/nupic.torch
+    working_directory: ~/nta/nupic.torch
     docker:
       - image: circleci/python:3.6
     steps:
-      - restore_cache:
-          key: source-cache-{{ .Environment.CIRCLE_SHA1 }}
+      - attach_workspace:
+          at: ~/nta
       - restore_cache:
           key: pip-cache-v1-{{ arch }}-{{ checksum "requirements.txt" }}-{{ checksum "requirements-dev.txt" }}
       - run:
@@ -71,12 +68,12 @@ jobs:
           path: test_results
 
   test:
-    working_directory: ~/nupic.torch
+    working_directory: ~/nta/nupic.torch
     docker:
       - image: circleci/python:3.6
     steps:
-      - restore_cache:
-          key: source-cache-{{ .Environment.CIRCLE_SHA1 }}
+      - attach_workspace:
+          at: ~/nta
       - restore_cache:
           key: pip-cache-v1-{{ arch }}-{{ checksum "requirements.txt" }}-{{ checksum "requirements-dev.txt" }}
       - run:
@@ -90,39 +87,42 @@ jobs:
           path: test_results
 
   build:
-    working_directory: ~/nupic.torch
+    working_directory: ~/nta/nupic.torch
     docker:
       - image: circleci/python:3.6
     steps:
-      - restore_cache:
-          key: source-cache-{{ .Environment.CIRCLE_SHA1 }}
+      - attach_workspace:
+          at: ~/nta
       - restore_cache:
           key: pip-cache-v1-{{ arch }}-{{ checksum "requirements.txt" }}-{{ checksum "requirements-dev.txt" }}
       - run:
           name: Build wheel
           environment:
             VERBOSE: 1
-          command: python setup.py bdist_wheel
+          command: |
+            python setup.py bdist_wheel
+            python setup.py --version > dist/VERSION
       - store_artifacts:
           path: dist
       - persist_to_workspace:
-          root: .
-          paths: dist
+          root: ~/nta
+          paths: nupic.torch/dist
 
   deploy:
-    working_directory: ~/nupic.torch
+    working_directory: ~/nta/nupic.torch
     docker:
       - image: circleci/python:3.6
     steps:
-      - restore_cache:
-          key: source-cache-{{ .Environment.CIRCLE_SHA1 }}
       - attach_workspace:
-          at: .
+          at: ~/nta
       - run:
           name: Validate Version
           command: |
-            if [ `python setup.py --version` != "$CIRCLE_TAG" ];
-              then exit 1;
+            MY_VERSION=$(<dist/VERSION)
+            if [ "$MY_VERSION" != "$CIRCLE_TAG" ]; then
+              echo "Package version does not match release tag."
+              echo "Found release tag $CIRCLE_TAG but expected $MY_VERSION"
+              exit 1;
             fi
       - run:
           name: Deploy to PYPI
@@ -130,24 +130,39 @@ jobs:
             VERBOSE: 1
           command: |
             pip install twine --user
-            python -m twine upload dist/*
+            python -m twine upload dist/nupic.torch-$CIRCLE_TAG-*.whl
 
 workflows:
   version: 2
 
   validate-build-test:
     jobs:
-      - validate_contributor
+      - validate_contributor:
+          filters:
+            tags:
+              only: &release_tags /\d+(\.\d+){2}/
       - install_dependencies:
           requires:
             - validate_contributor
+          filters:
+            tags:
+              only: *release_tags
       - check_style:
           requires:
             - install_dependencies
+          filters:
+            tags:
+              only: *release_tags
       - test:
           requires:
             - install_dependencies
+          filters:
+            tags:
+              only: *release_tags
       - build:
+          filters:
+            tags:
+              only: *release_tags
           requires:
             - check_style
             - test
@@ -157,6 +172,6 @@ workflows:
             - build
           filters:
             tags:
-              only: /[0-9]+(\.[0-9]+)*/
+              only: *release_tags
             branches:
               ignore: /.*/
