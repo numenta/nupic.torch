@@ -37,7 +37,7 @@ class TestSparseWeights(unittest.TestCase):
                 nonzeros = torch.nonzero(sparse.module.weight, as_tuple=True)[0]
                 counts = torch.unique(nonzeros, return_counts=True)[1]
 
-                # Expected activity per unit
+                # Expected non-zeros per output feature
                 expected = [round(in_features * percent_on)] * out_features
                 self.assertSequenceEqual(counts.numpy().tolist(), expected)
 
@@ -54,7 +54,7 @@ class TestSparseWeights(unittest.TestCase):
                 nonzeros = torch.nonzero(sparse.module.weight, as_tuple=True)[0]
                 counts = torch.unique(nonzeros, return_counts=True)[1]
 
-                # Expected activity per channel
+                # Expected non-zeros per output channel
                 expected = [round(input_size * percent_on)] * out_channels
                 self.assertSequenceEqual(counts.numpy().tolist(), expected)
 
