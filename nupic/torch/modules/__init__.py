@@ -18,6 +18,9 @@
 #
 # http://numenta.org/licenses/
 # ----------------------------------------------------------------------
-from .flatten import *
-from .k_winners import *
-from .sparse_weights import *
+from .flatten import Flatten
+from .k_winners import KWinners, KWinners2d, update_boost_strength
+from .sparse_weights import (
+    SparseWeights, SparseWeights2d, rezero_weights,
+    normalize_sparse_weights
+)

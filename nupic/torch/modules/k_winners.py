@@ -29,7 +29,8 @@ from nupic.torch.duty_cycle_metrics import binary_entropy, max_entropy
 
 
 def update_boost_strength(m):
-    """Function used to update KWinner modules boost strength after each epoch.
+    """Function used to update KWinner modules boost strength. This is typically done
+    during training at the beginning of each epoch.
 
     Call using :meth:`torch.nn.Module.apply` after each epoch if required
     For example: ``m.apply(update_boost_strength)``
@@ -119,11 +120,10 @@ class KWinnersBase(nn.Module, metaclass=abc.ABCMeta):
         raise NotImplementedError
 
     def update_boost_strength(self):
-        """Update boost strength using given strength factor during
-        training.
+        """Update boost strength by multiplying by the boost strength factor.
+        This is typically done during training at the beginning of each epoch.
         """
-        if self.training:
-            self.boost_strength *= self.boost_strength_factor
+        self.boost_strength *= self.boost_strength_factor
 
     def entropy(self):
         """Returns the current total entropy of this layer."""

@@ -40,7 +40,7 @@ class KWinnersTest(unittest.TestCase):
     def setUp(self):
 
         # Batch size 2
-        x = torch.rand(2, 7)
+        x = torch.rand(2, 7) / 2.0
         x[0, 1] = 1.20
         x[0, 2] = 1.10
         x[0, 3] = 1.30
@@ -57,17 +57,18 @@ class KWinnersTest(unittest.TestCase):
         self.duty_cycle[:] = 1.0 / 3.0
 
         # Batch size 2
-        x2 = torch.rand(2, 6)
+        x2 = torch.rand(2, 6) / 2.0
         x2[0, 0] = 1.50
-        x2[0, 1] = 1.01
+        x2[0, 1] = 1.02
         x2[0, 2] = 1.10
         x2[0, 3] = 1.30
-        x2[0, 5] = 1.02
+        x2[0, 5] = 1.03
         x2[1, 0] = 1.11
-        x2[1, 1] = 1.03
+        x2[1, 1] = 1.04
         x2[1, 2] = 1.20
         x2[1, 3] = 1.60
-        x2[1, 5] = 1.04
+        x2[1, 4] = 1.01
+        x2[1, 5] = 1.05
         self.x2 = x2
 
         # Unequal duty cycle for x2.
@@ -98,7 +99,7 @@ class KWinnersTest(unittest.TestCase):
         self.duty_cycle3 = duty_cycle3
 
         # Batch size 1.
-        x4 = torch.rand(1, 10)
+        x4 = torch.rand(1, 10) / 2.0
         x4[0, 2] = 1.20
         x4[0, 3] = 1.21
         x4[0, 4] = 1.22
@@ -384,6 +385,15 @@ class KWinnersTest(unittest.TestCase):
 
         # Test with mod.training = False.
         kw.train(mode=False)
+        result = kw(x)
+        expected = torch.zeros_like(x)
+        expected[0, 0] = x[0, 0]
+        expected[0, 1] = x[0, 1]
+        expected[0, 5] = x[0, 5]
+        expected[1, 2] = x[1, 2]
+        expected[1, 3] = x[1, 3]
+        expected[1, 4] = x[1, 4]
+        self.assertTrue(result.eq(expected).all())
 
     def test_tie_breaking(self):
         """
