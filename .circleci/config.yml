@@ -48,7 +48,6 @@ jobs:
           key: pip-cache-v1-{{ arch }}-{{ checksum "requirements.txt" }}-{{ checksum "requirements-dev.txt" }}
           paths:
             - ~/.local
-            - ~/.cache
 
   check_style:
     working_directory: ~/nta/nupic.torch
