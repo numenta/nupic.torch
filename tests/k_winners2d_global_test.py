@@ -73,7 +73,8 @@ class KWinners2DTest(unittest.TestCase):
 
         ctx = TestContext()
 
-        result = F.KWinners2d.forward(ctx, x, self.duty_cycle, k=4, boost_strength=0.0)
+        result = F.KWinners2dGlobal.forward(ctx, x, self.duty_cycle, k=4,
+                                            boost_strength=0.0)
 
         expected = torch.zeros_like(x)
         expected[0, 0, 1, 0] = x[0, 0, 1, 0]
@@ -93,7 +94,7 @@ class KWinners2DTest(unittest.TestCase):
 
         # Test that gradient values are in the right places, that their sum is
         # equal, and that they have exactly the right number of nonzeros
-        grad_x, _, _, _ = F.KWinners2d.backward(ctx, self.gradient)
+        grad_x, _, _, _ = F.KWinners2dGlobal.backward(ctx, self.gradient)
         grad_x = grad_x.reshape(-1)
         self.assertEqual(
             (grad_x[indices] == self.gradient.reshape(-1)[indices]).sum(), 4
@@ -111,7 +112,8 @@ class KWinners2DTest(unittest.TestCase):
 
         ctx = TestContext()
 
-        result = F.KWinners2d.forward(ctx, x, self.duty_cycle, k=3, boost_strength=0.0)
+        result = F.KWinners2dGlobal.forward(ctx, x, self.duty_cycle, k=3,
+                                            boost_strength=0.0)
 
         expected = torch.zeros_like(x)
         expected[0, 0, 1, 1] = x[0, 0, 1, 1]
@@ -130,7 +132,7 @@ class KWinners2DTest(unittest.TestCase):
 
         # Test that gradient values are in the right places, that their sum is
         # equal, and that they have exactly the right number of nonzeros
-        grad_x, _, _, _ = F.KWinners2d.backward(ctx, self.gradient)
+        grad_x, _, _, _ = F.KWinners2dGlobal.backward(ctx, self.gradient)
         grad_x = grad_x.reshape(-1)
         self.assertEqual(
             (grad_x[indices] == self.gradient.reshape(-1)[indices]).sum(), 3
@@ -148,7 +150,8 @@ class KWinners2DTest(unittest.TestCase):
 
         ctx = TestContext()
 
-        result = F.KWinners2d.forward(ctx, x, self.duty_cycle, k=4, boost_strength=0.0)
+        result = F.KWinners2dGlobal.forward(ctx, x, self.duty_cycle, k=4,
+                                            boost_strength=0.0)
 
         expected = torch.zeros_like(x)
         expected[0, 0, 1, 0] = x[0, 0, 1, 0]
@@ -172,7 +175,7 @@ class KWinners2DTest(unittest.TestCase):
 
         # Test that gradient values are in the right places, that their sum is
         # equal, and that they have exactly the right number of nonzeros
-        out_grad, _, _, _ = F.KWinners2d.backward(ctx, self.gradient2)
+        out_grad, _, _, _ = F.KWinners2dGlobal.backward(ctx, self.gradient2)
         out_grad = out_grad.reshape(2, -1)
         in_grad = self.gradient2.reshape(2, -1)
         self.assertEqual((out_grad == in_grad).sum(), 8)
@@ -184,7 +187,8 @@ class KWinners2DTest(unittest.TestCase):
 
         ctx = TestContext()
 
-        result = F.KWinners2d.forward(ctx, x, self.duty_cycle, k=3, boost_strength=0.0)
+        result = F.KWinners2dGlobal.forward(ctx, x, self.duty_cycle, k=3,
+                                            boost_strength=0.0)
 
         expected = torch.zeros_like(x)
         expected[0, 0, 1, 1] = x[0, 0, 1, 1]
@@ -206,7 +210,7 @@ class KWinners2DTest(unittest.TestCase):
 
         # Test that gradient values are in the right places, that their sum is
         # equal, and that they have exactly the right number of nonzeros
-        out_grad, _, _, _ = F.KWinners2d.backward(ctx, self.gradient2)
+        out_grad, _, _, _ = F.KWinners2dGlobal.backward(ctx, self.gradient2)
         out_grad = out_grad.reshape(2, -1)
         in_grad = self.gradient2.reshape(2, -1)
         self.assertEqual((out_grad == in_grad).sum(), 6)
@@ -222,6 +226,7 @@ class KWinners2DTest(unittest.TestCase):
             boost_strength=1.0,
             boost_strength_factor=0.5,
             duty_cycle_period=1000,
+            local=False
         )
 
         expected = torch.zeros_like(x)
@@ -266,6 +271,7 @@ class KWinners2DTest(unittest.TestCase):
             boost_strength=1.0,
             boost_strength_factor=0.5,
             duty_cycle_period=1000,
+            local=False
         )
 
         kw.train(mode=True)
