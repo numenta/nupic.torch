@@ -202,7 +202,7 @@ MODEL_URLS = {
 
 def gsc_sparse_cnn(pretrained=False, progress=True, **kwargs):
     """
-    Sparse CNN model used to classify `Google Speech Commands`dataset
+    Sparse CNN model used to classify 'Google Speech Commands' dataset
 
     :param pretrained: If True, returns a model pre-trained on Google Speech Commands
     :param progress: If True, displays a progress bar of the download to stderr
