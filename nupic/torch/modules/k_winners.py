@@ -190,12 +190,10 @@ class KWinners(KWinnersBase):
     def forward(self, x):
 
         if self.training:
-            x = F.KWinners.apply(x, self.duty_cycle, self.k, self.boost_strength)
+            x = F.k_winners(x, self.duty_cycle, self.k, self.boost_strength)
             self.update_duty_cycle(x)
         else:
-            x = F.KWinners.apply(
-                x, self.duty_cycle, self.k_inference, self.boost_strength
-            )
+            x = F.k_winners(x, self.duty_cycle, self.k_inference, self.boost_strength)
 
         return x
 
@@ -217,11 +215,12 @@ class KWinners2d(KWinnersBase):
         boost_strength=1.0,
         boost_strength_factor=0.9,
         duty_cycle_period=1000,
+        local=False
     ):
-        """Applies K-Winner function to the input tensor.
+        """
+        Applies K-Winner function to the input tensor.
 
-            See :class:`htmresearch.frameworks.pytorch.functions.k_winners2d`
-
+        See :class:`htmresearch.frameworks.pytorch.functions.k_winners2d`
 
         :param channels:
           Number of channels (filters) in the convolutional layer.
@@ -249,6 +248,12 @@ class KWinners2d(KWinnersBase):
         :param duty_cycle_period:
           The period used to calculate duty cycles
         :type duty_cycle_period: int
+
+        :param local:
+            Whether or not to choose the k-winners locally (across the channels
+            at each location) or globally (across the whole input and across
+            all channels).
+        :type local: bool
         """
         super(KWinners2d, self).__init__(
             percent_on=percent_on,
@@ -259,23 +264,30 @@ class KWinners2d(KWinnersBase):
         )
 
         self.channels = channels
+        self.local = local
+        if local:
+            self.k = int(round(self.channels * self.percent_on))
+            self.k_inference = int(round(self.channels * self.percent_on_inference))
+            self.kwinner_function = F.k_winners2d_local
+        else:
+            self.kwinner_function = F.k_winners2d_global
+
         self.register_buffer("duty_cycle", torch.zeros((1, channels, 1, 1)))
 
     def forward(self, x):
 
         if self.n == 0:
             self.n = np.prod(x.shape[1:])
-            self.k = int(round(self.n * self.percent_on))
-            self.k_inference = int(round(self.n * self.percent_on_inference))
+            if not self.local:
+                self.k = int(round(self.n * self.percent_on))
+                self.k_inference = int(round(self.n * self.percent_on_inference))
 
         if self.training:
-            x = F.KWinners2d.apply(x, self.duty_cycle, self.k, self.boost_strength)
+            x = self.kwinner_function(x, self.duty_cycle, self.k, self.boost_strength)
             self.update_duty_cycle(x)
-
         else:
-            x = F.KWinners2d.apply(
-                x, self.duty_cycle, self.k_inference, self.boost_strength
-            )
+            x = self.kwinner_function(x, self.duty_cycle, self.k_inference,
+                                      self.boost_strength)
 
         return x
 
@@ -295,6 +307,6 @@ class KWinners2d(KWinnersBase):
         return entropy * self.n / self.channels
 
     def extra_repr(self):
-        return "channels={}, {}".format(
-            self.channels, super(KWinners2d, self).extra_repr()
+        return "channels={}, local={}, {}".format(
+            self.channels, self.local, super(KWinners2d, self).extra_repr()
         )

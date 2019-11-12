@@ -116,9 +116,10 @@ class KWinners(torch.autograd.Function):
         return grad_x, None, None, None
 
 
-class KWinners2d(torch.autograd.Function):
-    """A K-winner take all autograd function for CNN 2D inputs (batch, Channel,
-    H, W).
+class KWinners2dGlobal(torch.autograd.Function):
+    """
+    A K-winner take all autograd function for CNN 2D inputs (batch, Channel, H, W)
+    where the k-winners are chosen globally across the whole input
 
     .. seealso::      Function :class:`k_winners`
     """
@@ -188,3 +189,76 @@ class KWinners2d(torch.autograd.Function):
         grad_x = grad_x.reshape(grad_output.shape)
 
         return grad_x, None, None, None
+
+
+class KWinners2dLocal(torch.autograd.Function):
+    """
+    A K-winner take all autograd function for CNN 2D inputs (batch, Channel, H,
+    W) where k-winners are chosen independently for each location. Local k-winners
+    selects the top k channels locally for each of the H X W locations.
+
+    .. seealso::      Function :class:`k_winners2d_global`
+    """
+
+    @staticmethod
+    def forward(ctx, x, duty_cycles, k, boost_strength):
+        """
+          Take the boosted version of the input x, find the top k winners
+          independently for each location. The output will only contain the
+          values of x corresponding to the top k boosted values across all the
+          channels at each location. The rest of the elements in the output
+          should be 0.
+
+        :param ctx:
+          Place where we can store information we will need to compute the
+          gradients for the backward pass.
+
+        :param x:
+          Current activity of each unit.
+
+        :param duty_cycles:
+          The averaged duty cycle of each unit.
+
+        :param k:
+          The activity of the top k units across the channels will be allowed to
+          remain, the rest are set to zero.
+
+        :param boost_strength:
+          A boost strength of 0.0 has no effect on x.
+
+        :return:
+             A tensor representing the activity of x after k-winner take all.
+        """
+        batch_size, channels, h, w = x.shape
+        if boost_strength > 0.0:
+            # Apply boost strength to input computing density per channel
+            target_density = float(k) / channels
+            boost_factors = torch.exp((target_density - duty_cycles) * boost_strength)
+            boosted = x.detach() * boost_factors
+        else:
+            boosted = x.detach()
+
+        # Select top K channels from the boosted values
+        topk, indices = boosted.topk(k=k, dim=1)
+        res = torch.zeros_like(x)
+        res.scatter_(1, indices, x.gather(1, indices))
+
+        ctx.save_for_backward(indices)
+        return res
+
+    @staticmethod
+    def backward(ctx, grad_output):
+        """
+        In the backward pass, we set the gradient to 1 for the winning units,
+        and 0 for the others.
+        """
+        indices, = ctx.saved_tensors
+        grad_x = torch.zeros_like(grad_output, requires_grad=False)
+        grad_x.scatter_(1, indices, grad_output.gather(1, indices))
+        return grad_x, None, None, None, None
+
+
+# Function aliases
+k_winners = KWinners.apply
+k_winners2d_global = KWinners2dGlobal.apply
+k_winners2d_local = KWinners2dLocal.apply
