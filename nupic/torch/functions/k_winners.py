@@ -121,7 +121,7 @@ class KWinners2dGlobal(torch.autograd.Function):
     A K-winner take all autograd function for CNN 2D inputs (batch, Channel, H, W)
     where the k-winners are chosen globally across the whole input
 
-    .. seealso::      Function :class:`k_winners`
+    .. seealso::      Function :class:`KWinners`
     """
 
     @staticmethod
@@ -197,7 +197,7 @@ class KWinners2dLocal(torch.autograd.Function):
     W) where k-winners are chosen independently for each location. Local k-winners
     selects the top k channels locally for each of the H X W locations.
 
-    .. seealso::      Function :class:`k_winners2d_global`
+    .. seealso::      Function :class:`KWinners2dGlobal`
     """
 
     @staticmethod
@@ -256,9 +256,3 @@ class KWinners2dLocal(torch.autograd.Function):
         grad_x = torch.zeros_like(grad_output, requires_grad=False)
         grad_x.scatter_(1, indices, grad_output.gather(1, indices))
         return grad_x, None, None, None, None
-
-
-# Function aliases
-k_winners = KWinners.apply
-k_winners2d_global = KWinners2dGlobal.apply
-k_winners2d_local = KWinners2dLocal.apply

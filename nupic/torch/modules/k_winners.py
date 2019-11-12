@@ -42,6 +42,32 @@ def update_boost_strength(m):
 
 
 class KWinnersBase(nn.Module, metaclass=abc.ABCMeta):
+    """Base KWinners class.
+
+    :param percent_on:
+      The activity of the top k = percent_on * number of input units will be
+      allowed to remain, the rest are set to zero.
+    :type percent_on: float
+
+    :param k_inference_factor:
+      During inference (training=False) we increase percent_on by this factor.
+      percent_on * k_inference_factor must be strictly less than 1.0, ideally much
+      lower than 1.0
+    :type k_inference_factor: float
+
+    :param boost_strength:
+      boost strength (0.0 implies no boosting). Must be >= 0.0
+    :type boost_strength: float
+
+    :param boost_strength_factor:
+      Boost strength factor to use [0..1]
+    :type boost_strength_factor: float
+
+    :param duty_cycle_period:
+      The period used to calculate duty cycles
+    :type duty_cycle_period: int
+    """
+
     def __init__(
         self,
         percent_on,
@@ -50,31 +76,6 @@ class KWinnersBase(nn.Module, metaclass=abc.ABCMeta):
         boost_strength_factor=1.0,
         duty_cycle_period=1000,
     ):
-        """Base KWinners class.
-
-        :param percent_on:
-          The activity of the top k = percent_on * number of input units will be
-          allowed to remain, the rest are set to zero.
-        :type percent_on: float
-
-        :param k_inference_factor:
-          During inference (training=False) we increase percent_on by this factor.
-          percent_on * k_inference_factor must be strictly less than 1.0, ideally much
-          lower than 1.0
-        :type k_inference_factor: float
-
-        :param boost_strength:
-          boost strength (0.0 implies no boosting). Must be >= 0.0
-        :type boost_strength: float
-
-        :param boost_strength_factor:
-          Boost strength factor to use [0..1]
-        :type boost_strength_factor: float
-
-        :param duty_cycle_period:
-          The period used to calculate duty cycles
-        :type duty_cycle_period: int
-        """
         super(KWinnersBase, self).__init__()
         assert boost_strength >= 0.0
         assert 0.0 <= boost_strength_factor <= 1.0
@@ -136,6 +137,38 @@ class KWinnersBase(nn.Module, metaclass=abc.ABCMeta):
 
 
 class KWinners(KWinnersBase):
+    """Applies K-Winner function to the input tensor.
+
+    See :class:`htmresearch.frameworks.pytorch.functions.k_winners`
+
+    :param n:
+      Number of units
+    :type n: int
+
+    :param percent_on:
+      The activity of the top k = percent_on * n will be allowed to remain, the
+      rest are set to zero.
+    :type percent_on: float
+
+    :param k_inference_factor:
+      During inference (training=False) we increase percent_on by this factor.
+      percent_on * k_inference_factor must be strictly less than 1.0, ideally much
+      lower than 1.0
+    :type k_inference_factor: float
+
+    :param boost_strength:
+      boost strength (0.0 implies no boosting).
+    :type boost_strength: float
+
+    :param boost_strength_factor:
+      Boost strength factor to use [0..1]
+    :type boost_strength_factor: float
+
+    :param duty_cycle_period:
+      The period used to calculate duty cycles
+    :type duty_cycle_period: int
+    """
+
     def __init__(
         self,
         n,
@@ -145,36 +178,7 @@ class KWinners(KWinnersBase):
         boost_strength_factor=0.9,
         duty_cycle_period=1000,
     ):
-        """Applies K-Winner function to the input tensor.
 
-        See :class:`htmresearch.frameworks.pytorch.functions.k_winners`
-        :param n:
-          Number of units
-        :type n: int
-
-        :param percent_on:
-          The activity of the top k = percent_on * n will be allowed to remain, the
-          rest are set to zero.
-        :type percent_on: float
-
-        :param k_inference_factor:
-          During inference (training=False) we increase percent_on by this factor.
-          percent_on * k_inference_factor must be strictly less than 1.0, ideally much
-          lower than 1.0
-        :type k_inference_factor: float
-
-        :param boost_strength:
-          boost strength (0.0 implies no boosting).
-        :type boost_strength: float
-
-        :param boost_strength_factor:
-          Boost strength factor to use [0..1]
-        :type boost_strength_factor: float
-
-        :param duty_cycle_period:
-          The period used to calculate duty cycles
-        :type duty_cycle_period: int
-        """
         super(KWinners, self).__init__(
             percent_on=percent_on,
             k_inference_factor=k_inference_factor,
@@ -190,10 +194,11 @@ class KWinners(KWinnersBase):
     def forward(self, x):
 
         if self.training:
-            x = F.k_winners(x, self.duty_cycle, self.k, self.boost_strength)
+            x = F.KWinners.apply(x, self.duty_cycle, self.k, self.boost_strength)
             self.update_duty_cycle(x)
         else:
-            x = F.k_winners(x, self.duty_cycle, self.k_inference, self.boost_strength)
+            x = F.KWinners.apply(x, self.duty_cycle, self.k_inference,
+                                 self.boost_strength)
 
         return x
 
@@ -207,6 +212,45 @@ class KWinners(KWinnersBase):
 
 
 class KWinners2d(KWinnersBase):
+    """
+    Applies K-Winner function to the input tensor.
+
+    See :class:`htmresearch.frameworks.pytorch.functions.k_winners2d`
+
+    :param channels:
+      Number of channels (filters) in the convolutional layer.
+    :type channels: int
+
+    :param percent_on:
+      The activity of the top k = percent_on * number of input units will be
+      allowed to remain, the rest are set to zero.
+    :type percent_on: float
+
+    :param k_inference_factor:
+      During inference (training=False) we increase percent_on by this factor.
+      percent_on * k_inference_factor must be strictly less than 1.0, ideally much
+      lower than 1.0
+    :type k_inference_factor: float
+
+    :param boost_strength:
+      boost strength (0.0 implies no boosting).
+    :type boost_strength: float
+
+    :param boost_strength_factor:
+      Boost strength factor to use [0..1]
+    :type boost_strength_factor: float
+
+    :param duty_cycle_period:
+      The period used to calculate duty cycles
+    :type duty_cycle_period: int
+
+    :param local:
+        Whether or not to choose the k-winners locally (across the channels
+        at each location) or globally (across the whole input and across
+        all channels).
+    :type local: bool
+    """
+
     def __init__(
         self,
         channels,
@@ -217,44 +261,7 @@ class KWinners2d(KWinnersBase):
         duty_cycle_period=1000,
         local=False
     ):
-        """
-        Applies K-Winner function to the input tensor.
 
-        See :class:`htmresearch.frameworks.pytorch.functions.k_winners2d`
-
-        :param channels:
-          Number of channels (filters) in the convolutional layer.
-        :type channels: int
-
-        :param percent_on:
-          The activity of the top k = percent_on * number of input units will be
-          allowed to remain, the rest are set to zero.
-        :type percent_on: float
-
-        :param k_inference_factor:
-          During inference (training=False) we increase percent_on by this factor.
-          percent_on * k_inference_factor must be strictly less than 1.0, ideally much
-          lower than 1.0
-        :type k_inference_factor: float
-
-        :param boost_strength:
-          boost strength (0.0 implies no boosting).
-        :type boost_strength: float
-
-        :param boost_strength_factor:
-          Boost strength factor to use [0..1]
-        :type boost_strength_factor: float
-
-        :param duty_cycle_period:
-          The period used to calculate duty cycles
-        :type duty_cycle_period: int
-
-        :param local:
-            Whether or not to choose the k-winners locally (across the channels
-            at each location) or globally (across the whole input and across
-            all channels).
-        :type local: bool
-        """
         super(KWinners2d, self).__init__(
             percent_on=percent_on,
             k_inference_factor=k_inference_factor,
@@ -268,9 +275,9 @@ class KWinners2d(KWinnersBase):
         if local:
             self.k = int(round(self.channels * self.percent_on))
             self.k_inference = int(round(self.channels * self.percent_on_inference))
-            self.kwinner_function = F.k_winners2d_local
+            self.kwinner_function = F.KWinners2dLocal.apply
         else:
-            self.kwinner_function = F.k_winners2d_global
+            self.kwinner_function = F.KWinners2dGlobal.apply
 
         self.register_buffer("duty_cycle", torch.zeros((1, channels, 1, 1)))
 

@@ -2,4 +2,3 @@ sphinx>=2
 sphinx-autobuild
 recommonmark
 m2r
-torch==1.3

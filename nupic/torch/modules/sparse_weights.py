@@ -59,15 +59,16 @@ def normalize_sparse_weights(m):
 
 
 class SparseWeightsBase(nn.Module, metaclass=abc.ABCMeta):
-    def __init__(self, module, weight_sparsity):
-        """
-        Base class for the all Sparse Weights modules.
+    """
+    Base class for the all Sparse Weights modules.
 
-        :param module:
-          The module to sparsify the weights
-        :param weight_sparsity:
-          Pct of weights that are allowed to be non-zero in the layer.
-        """
+    :param module:
+      The module to sparsify the weights
+    :param weight_sparsity:
+      Pct of weights that are allowed to be non-zero in the layer.
+    """
+
+    def __init__(self, module, weight_sparsity):
         super(SparseWeightsBase, self).__init__()
         assert 0 < weight_sparsity < 1
 
@@ -102,19 +103,20 @@ class SparseWeightsBase(nn.Module, metaclass=abc.ABCMeta):
 
 
 class SparseWeights(SparseWeightsBase):
+    """Enforce weight sparsity on linear module during training.
+
+    Sample usage:
+
+      model = nn.Linear(784, 10)
+      model = SparseWeights(model, 0.4)
+
+    :param module:
+      The module to sparsify the weights
+    :param weight_sparsity:
+      Pct of weights that are allowed to be non-zero in the layer.
+    """
+
     def __init__(self, module, weight_sparsity):
-        """Enforce weight sparsity on linear module during training.
-
-        Sample usage:
-
-          model = nn.Linear(784, 10)
-          model = SparseWeights(model, 0.4)
-
-        :param module:
-          The module to sparsify the weights
-        :param weight_sparsity:
-          Pct of weights that are allowed to be non-zero in the layer.
-        """
         super(SparseWeights, self).__init__(module, weight_sparsity)
         assert isinstance(module, nn.Linear)
 
@@ -142,17 +144,18 @@ class SparseWeights(SparseWeightsBase):
 
 
 class SparseWeights2d(SparseWeightsBase):
+    """Enforce weight sparsity on CNN modules Sample usage:
+
+      model = nn.Conv2d(in_channels, out_channels, kernel_size, ...)
+      model = SparseWeights2d(model, 0.4)
+
+    :param module:
+      The module to sparsify the weights
+    :param weight_sparsity:
+      Pct of weights that are allowed to be non-zero in the layer.
+    """
+
     def __init__(self, module, weight_sparsity):
-        """Enforce weight sparsity on CNN modules Sample usage:
-
-          model = nn.Conv2d(in_channels, out_channels, kernel_size, ...)
-          model = SparseWeights2d(model, 0.4)
-
-        :param module:
-          The module to sparsify the weights
-        :param weight_sparsity:
-          Pct of weights that are allowed to be non-zero in the layer.
-        """
         super(SparseWeights2d, self).__init__(module, weight_sparsity)
         assert isinstance(module, nn.Conv2d)
 
