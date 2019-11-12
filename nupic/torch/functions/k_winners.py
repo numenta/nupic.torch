@@ -193,8 +193,9 @@ class KWinners2dGlobal(torch.autograd.Function):
 
 class KWinners2dLocal(torch.autograd.Function):
     """
-    A K-winner take all autograd function for CNN 2D inputs (batch, Channel, H, W)
-    where the k-winners are chosen locally across all the channels
+    A K-winner take all autograd function for CNN 2D inputs (batch, Channel, H,
+    W) where k-winners are chosen independently for each location. Local k-winners
+    selects the top k channels locally for each of the H X W locations.
 
     .. seealso::      Function :class:`k_winners2d_global`
     """
@@ -202,10 +203,11 @@ class KWinners2dLocal(torch.autograd.Function):
     @staticmethod
     def forward(ctx, x, duty_cycles, k, boost_strength):
         """
-          Take the boosted version of the input x, find the top k winners across
-          the channels. The output will only contain the values of x
-          corresponding to the top k boosted values across all the channels.
-          The rest of the elements in the output should be 0.
+          Take the boosted version of the input x, find the top k winners
+          independently for each location. The output will only contain the
+          values of x corresponding to the top k boosted values across all the
+          channels at each location. The rest of the elements in the output
+          should be 0.
 
         :param ctx:
           Place where we can store information we will need to compute the

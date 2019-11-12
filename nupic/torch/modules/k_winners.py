@@ -250,8 +250,9 @@ class KWinners2d(KWinnersBase):
         :type duty_cycle_period: int
 
         :param local:
-            Whether or not to choose the k-winners locally across the channels
-            or across the whole input
+            Whether or not to choose the k-winners locally (across the channels
+            at each location) or globally (across the whole input and across
+            all channels).
         :type local: bool
         """
         super(KWinners2d, self).__init__(
