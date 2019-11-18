@@ -83,7 +83,7 @@ class SparseWeightsBase(nn.Module, metaclass=abc.ABCMeta):
     def forward(self, x):
         if self.training:
             self.rezero_weights()
-        return self.module.forward(x)
+        return self.module(x)
 
     @abc.abstractmethod
     def compute_indices(self):
