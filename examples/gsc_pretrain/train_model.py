@@ -24,6 +24,7 @@ Train a sparse CNN on the Google Speech Commands dataset
 """
 
 import argparse
+import copy
 import hashlib
 import os
 import random
@@ -137,14 +138,17 @@ def do_training(model, device):
                     weight_decay=WEIGHT_DECAY)
     lr_scheduler = optim.lr_scheduler.StepLR(sgd, step_size=1,
                                              gamma=LEARNING_RATE_GAMMA)
+    best_model = None
+    best_results = {}
+    best_acc = 0.0
+    best_epoch = 0
     for epoch in range(EPOCHS):
         train_dataset = preprocessed_dataset(
             DATAPATH / "gsc_train{}.npz".format(epoch)
         )
         train_loader = torch.utils.data.DataLoader(
             train_dataset,
-            batch_size=(FIRST_EPOCH_BATCH_SIZE if epoch == 0
-                        else TRAIN_BATCH_SIZE),
+            batch_size=TRAIN_BATCH_SIZE,
             shuffle=True,
         )
 
@@ -156,8 +160,19 @@ def do_training(model, device):
 
         results = test(model=model, loader=valid_loader, criterion=F.nll_loss,
                        device=device)
+
+        # Save best model
+        if results["accuracy"] > best_acc:
+            best_acc = results["accuracy"]
+            best_model = copy.deepcopy(model)
+            best_epoch = epoch
+            best_results.update(results)
+
         print("Epoch {}: {}".format(epoch, results))
 
+    print("Best model: {}: {}".format(best_epoch, best_results))
+
+    return best_model
 
 def preprocessed_dataset(filepath):
     """
@@ -201,7 +216,7 @@ if __name__ == "__main__":
     model = modelclass().to(device)
     print("Training model:")
     print(model)
-    do_training(model, device)
+    model = do_training(model, device)
 
     tmp = DATAPATH / "tmp.pth"
     model.cpu()
