@@ -23,8 +23,11 @@ from torch import nn
 from torch.hub import load_state_dict_from_url
 
 from nupic.torch.modules import (
-    Flatten, KWinners, KWinners2d, SparseWeights,
-    SparseWeights2d
+    Flatten,
+    KWinners,
+    KWinners2d,
+    SparseWeights,
+    SparseWeights2d,
 )
 
 

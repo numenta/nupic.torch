@@ -171,8 +171,8 @@ def do_training(model, device):
         print("Epoch {}: {}".format(epoch, results))
 
     print("Best model: {}: {}".format(best_epoch, best_results))
-
     return best_model
+
 
 def preprocessed_dataset(filepath):
     """
