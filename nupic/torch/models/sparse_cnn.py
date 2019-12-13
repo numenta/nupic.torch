@@ -65,7 +65,7 @@ class MNISTSparseCNN(nn.Sequential):
                  linear_weight_sparsity=0.2,
                  boost_strength=1.5,
                  boost_strength_factor=0.85,
-                 k_inference_factor=1.5,
+                 k_inference_factor=1.0,
                  duty_cycle_period=1000,
                  kwinner_local=False
                  ):
