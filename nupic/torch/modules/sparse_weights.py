@@ -139,7 +139,7 @@ class SparseWeights(SparseWeightsBase):
         return torch.from_numpy(zero_indices.transpose())
 
     def rezero_weights(self):
-        zero_idx = (self.zero_weights[0], self.zero_weights[1])
+        zero_idx = (self.zero_weights[0].long(), self.zero_weights[1].long())
         self.module.weight.data[zero_idx] = 0.0
 
 
@@ -183,5 +183,5 @@ class SparseWeights2d(SparseWeightsBase):
         return torch.from_numpy(zero_indices.transpose())
 
     def rezero_weights(self):
-        zero_idx = (self.zero_weights[0], self.zero_weights[1])
+        zero_idx = (self.zero_weights[0].long(), self.zero_weights[1].long())
         self.module.weight.data.view(self.module.out_channels, -1)[zero_idx] = 0.0
