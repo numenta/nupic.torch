@@ -86,6 +86,8 @@ jobs:
           path: test_results
 
   build:
+    executer:
+      name: win/default
     working_directory: ~/nta/nupic.torch
     docker:
       - image: circleci/python:3.6
