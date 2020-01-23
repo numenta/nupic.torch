@@ -19,6 +19,9 @@
 # http://numenta.org/licenses/
 version: 2
 
+orbs:
+  win: circleci/windows@2.2.0
+
 jobs:
   validate_contributor:
     working_directory: ~/nta/nupic.torch
