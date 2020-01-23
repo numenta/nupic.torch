@@ -17,7 +17,7 @@
 # along with this program.  If not, see http://www.gnu.org/licenses.
 #
 # http://numenta.org/licenses/
-version: 2
+version: 2.1
 
 orbs:
   win: circleci/windows@2.2.0
