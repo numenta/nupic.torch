@@ -130,7 +130,6 @@ jobs:
           command: |
             pip install twine --user
             python -m twine upload dist/nupic.torch-$CIRCLE_TAG-*.whl
-
 workflows:
   version: 2
 
