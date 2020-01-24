@@ -17,10 +17,7 @@
 # along with this program.  If not, see http://www.gnu.org/licenses.
 #
 # http://numenta.org/licenses/
-version: 2.1
-
-orbs:
-  win: circleci/windows@2.2.0
+version: 2
 
 jobs:
   validate_contributor:
@@ -89,8 +86,6 @@ jobs:
           path: test_results
 
   build:
-    executer:
-      name: win/default
     working_directory: ~/nta/nupic.torch
     docker:
       - image: circleci/python:3.6
@@ -135,7 +130,6 @@ jobs:
           command: |
             pip install twine --user
             python -m twine upload dist/nupic.torch-$CIRCLE_TAG-*.whl
-
 workflows:
   version: 2
 
