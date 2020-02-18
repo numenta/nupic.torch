@@ -175,5 +175,6 @@ class KWinner2dLocalTest(unittest.TestCase):
         expected[1, [0, 2], 1, 1] = grad[1, [0, 2], 1, 1]
         assert_allclose(x.grad, expected)
 
+
 if __name__ == "__main__":
     unittest.main()
