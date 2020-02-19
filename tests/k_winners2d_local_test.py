@@ -20,7 +20,7 @@
 import unittest
 
 import torch
-from torch.autograd.gradcheck import gradcheck
+from torch.testing import assert_allclose
 
 from nupic.torch.modules import KWinners2d
 
@@ -148,18 +148,32 @@ class KWinner2dLocalTest(unittest.TestCase):
         """
         Test gradient
         """
-        x = torch.randn(self.x.size(), dtype=torch.double, requires_grad=True)
+        x = torch.tensor(self.x[0:2], requires_grad=True)
         n, c, h, w = x.shape
         kw = KWinners2d(
-            percent_on=0.5,
+            percent_on=0.5,  # k=2
             channels=c,
             k_inference_factor=1.0,
             boost_strength=0.0,
-            boost_strength_factor=1.0,
             duty_cycle_period=1000,
             local=True
         )
-        self.assertTrue(gradcheck(kw, x, raise_exception=True))
+        kw.train(mode=True)
+        y = kw(x)
+
+        grad = torch.rand_like(x, requires_grad=True)
+        y.backward(grad)
+
+        expected = torch.zeros_like(grad, requires_grad=False)
+        expected[0, [2, 3], 0, 0] = grad[0, [2, 3], 0, 0]
+        expected[0, [1, 3], 0, 1] = grad[0, [1, 3], 0, 1]
+        expected[0, [0, 1], 1, 0] = grad[0, [0, 1], 1, 0]
+        expected[0, [2, 3], 1, 1] = grad[0, [2, 3], 1, 1]
+        expected[1, [2, 3], 0, 0] = grad[1, [2, 3], 0, 0]
+        expected[1, [1, 3], 0, 1] = grad[1, [1, 3], 0, 1]
+        expected[1, [0, 3], 1, 0] = grad[1, [0, 3], 1, 0]
+        expected[1, [0, 2], 1, 1] = grad[1, [0, 2], 1, 1]
+        assert_allclose(x.grad, expected)
 
 
 if __name__ == "__main__":
