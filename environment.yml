@@ -3,16 +3,17 @@
 # platform: osx-64
 name: nupic.torch
 channels:
+  - pytorch
+  - intel
   - defaults
   - conda-forge
-  - pytorch
 
 dependencies:
   - python=3.7
   - pip
 
   # See requirements.txt
-  - pytorch==1.3
+  - pytorch==1.3.1
 
   # See requirements-dev.txt
   - black=19.3b0
