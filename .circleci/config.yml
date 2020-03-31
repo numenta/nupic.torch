@@ -81,7 +81,7 @@ jobs:
             PYTEST_ADDOPTS: --junitxml=test_results/pytest/results.xml --verbose
           command: |
             mkdir -p test_results/pytest
-            python setup.py test
+            pytest
       - store_test_results:
           path: test_results
 
