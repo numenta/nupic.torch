@@ -87,8 +87,6 @@ class TestSparseWeights(unittest.TestCase):
                                       out_channels=out_channels,
                                       kernel_size=kernel_size)
                 sparse = SparseWeights2d(cnn, percent_on)
-                nonzeros = torch.nonzero(sparse.module.weight, as_tuple=True)[0]
-                counts = torch.unique(nonzeros, return_counts=True)[1]
 
                 # Ensure weights are not sparse
                 sparse.module.weight.data.fill_(1.0)
@@ -96,7 +94,9 @@ class TestSparseWeights(unittest.TestCase):
                 x = torch.ones((1,) + (in_channels, kernel_size[0], kernel_size[1]))
                 sparse(x)
 
-                # Expected non-zeros per output channel
+                # When training, the forward function should set weights back to zero.
+                nonzeros = torch.nonzero(sparse.module.weight, as_tuple=True)[0]
+                counts = torch.unique(nonzeros, return_counts=True)[1]
                 expected = [round(input_size * percent_on)] * out_channels
                 self.assertSequenceEqual(counts.numpy().tolist(), expected)
 
