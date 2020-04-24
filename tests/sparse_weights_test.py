@@ -58,6 +58,48 @@ class TestSparseWeights(unittest.TestCase):
                 expected = [round(input_size * percent_on)] * out_channels
                 self.assertSequenceEqual(counts.numpy().tolist(), expected)
 
+    def test_rezero_after_forward_1d(self):
+        in_features, out_features = 784, 10
+        for percent_on in [0.1, 0.5, 0.9]:
+            linear = torch.nn.Linear(in_features=in_features,
+                                     out_features=out_features)
+            sparse = SparseWeights(linear, percent_on)
+
+            # Ensure weights are not sparse
+            sparse.module.weight.data.fill_(1.0)
+            sparse.train()
+            x = torch.ones((1,) + (in_features,))
+            sparse(x)
+
+            # When training, the forward function should set weights back to zero.
+            nonzeros = torch.nonzero(sparse.module.weight, as_tuple=True)[0]
+            counts = torch.unique(nonzeros, return_counts=True)[1]
+            expected = [round(in_features * percent_on)] * out_features
+            self.assertSequenceEqual(counts.numpy().tolist(), expected)
+
+    def test_rezero_after_forward_2d(self):
+        in_channels, kernel_size, out_channels = 64, (5, 5), 64
+        input_size = in_channels * kernel_size[0] * kernel_size[1]
+
+        with torch.no_grad():
+            for percent_on in [0.1, 0.5, 0.9]:
+                cnn = torch.nn.Conv2d(in_channels=in_channels,
+                                      out_channels=out_channels,
+                                      kernel_size=kernel_size)
+                sparse = SparseWeights2d(cnn, percent_on)
+
+                # Ensure weights are not sparse
+                sparse.module.weight.data.fill_(1.0)
+                sparse.train()
+                x = torch.ones((1,) + (in_channels, kernel_size[0], kernel_size[1]))
+                sparse(x)
+
+                # When training, the forward function should set weights back to zero.
+                nonzeros = torch.nonzero(sparse.module.weight, as_tuple=True)[0]
+                counts = torch.unique(nonzeros, return_counts=True)[1]
+                expected = [round(input_size * percent_on)] * out_channels
+                self.assertSequenceEqual(counts.numpy().tolist(), expected)
+
 
 if __name__ == "__main__":
     unittest.main()
