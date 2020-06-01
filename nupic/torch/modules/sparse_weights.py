@@ -20,6 +20,7 @@
 # ----------------------------------------------------------------------
 import abc
 import math
+import warnings
 
 import numpy as np
 import torch
@@ -48,7 +49,7 @@ def normalize_sparse_weights(m):
     """
     if isinstance(m, SparseWeightsBase):
         _, input_size = m.module.weight.shape
-        fan = int(input_size * m.weight_sparsity)
+        fan = int(input_size * (1.0 - m.sparsity))
         gain = nn.init.calculate_gain("leaky_relu", math.sqrt(5))
         std = gain / np.math.sqrt(fan)
         bound = math.sqrt(3.0) * std  # Calculate uniform bounds from standard deviation
@@ -64,21 +65,30 @@ class SparseWeightsBase(nn.Module, metaclass=abc.ABCMeta):
 
     :param module:
       The module to sparsify the weights
-    :param weight_sparsity:
-      Pct of weights that are allowed to be non-zero in the layer.
+    :param sparsity:
+      Pct of weights that are zero in the layer.
     """
 
-    def __init__(self, module, weight_sparsity):
+    def __init__(self, module, weight_sparsity=None, sparsity=None):
         super(SparseWeightsBase, self).__init__()
-        assert 0 < weight_sparsity < 1
+        assert weight_sparsity is not None or sparsity is not None
+        if weight_sparsity is not None and sparsity is None:
+            assert 0 < weight_sparsity < 1
+            sparsity = 1.0 - weight_sparsity
+            warnings.warn(
+                "Parameter `weight_sparsity` is deprecated. Use `sparsity` instead.",
+                DeprecationWarning,
+            )
+
+        assert 0 < sparsity < 1
 
         self.module = module
-        self.weight_sparsity = weight_sparsity
+        self.sparsity = sparsity
         self.register_buffer("zero_weights", self.compute_indices())
         self.rezero_weights()
 
     def extra_repr(self):
-        return "weight_sparsity={}".format(self.weight_sparsity)
+        return "sparsity={}".format(self.sparsity)
 
     def forward(self, x):
         if self.training:
@@ -112,18 +122,20 @@ class SparseWeights(SparseWeightsBase):
 
     :param module:
       The module to sparsify the weights
-    :param weight_sparsity:
-      Pct of weights that are allowed to be non-zero in the layer.
+    :param sparsity:
+      Pct of weights that are zero in the layer.
     """
 
-    def __init__(self, module, weight_sparsity):
-        super(SparseWeights, self).__init__(module, weight_sparsity)
+    def __init__(self, module, weight_sparsity=None, sparsity=None):
+        super(SparseWeights, self).__init__(
+            module, weight_sparsity=weight_sparsity, sparsity=sparsity
+        )
         assert isinstance(module, nn.Linear)
 
     def compute_indices(self):
         # For each unit, decide which weights are going to be zero
         output_size, input_size = self.module.weight.shape
-        num_zeros = int(round((1.0 - self.weight_sparsity) * input_size))
+        num_zeros = int(round(self.sparsity * input_size))
 
         output_indices = np.arange(output_size)
         input_indices = np.array(
@@ -151,12 +163,14 @@ class SparseWeights2d(SparseWeightsBase):
 
     :param module:
       The module to sparsify the weights
-    :param weight_sparsity:
-      Pct of weights that are allowed to be non-zero in the layer.
+    :param sparsity:
+      Pct of weights that are zero in the layer.
     """
 
-    def __init__(self, module, weight_sparsity):
-        super(SparseWeights2d, self).__init__(module, weight_sparsity)
+    def __init__(self, module, weight_sparsity=None, sparsity=None):
+        super(SparseWeights2d, self).__init__(
+            module, weight_sparsity=weight_sparsity, sparsity=sparsity
+        )
         assert isinstance(module, nn.Conv2d)
 
     def compute_indices(self):
@@ -166,7 +180,7 @@ class SparseWeights2d(SparseWeightsBase):
         kernel_size = self.module.kernel_size
 
         input_size = in_channels * kernel_size[0] * kernel_size[1]
-        num_zeros = int(round((1.0 - self.weight_sparsity) * input_size))
+        num_zeros = int(round(self.sparsity * input_size))
 
         output_indices = np.arange(out_channels)
         input_indices = np.array(

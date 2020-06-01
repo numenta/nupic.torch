@@ -30,15 +30,15 @@ class TestSparseWeights(unittest.TestCase):
     def test_sparse_weights_1d(self):
         in_features, out_features = 784, 10
         with torch.no_grad():
-            for percent_on in [0.1, 0.5, 0.9]:
+            for sparsity in [0.1, 0.5, 0.9]:
                 linear = torch.nn.Linear(in_features=in_features,
                                          out_features=out_features)
-                sparse = SparseWeights(linear, percent_on)
+                sparse = SparseWeights(linear, sparsity=sparsity)
                 nonzeros = torch.nonzero(sparse.module.weight, as_tuple=True)[0]
                 counts = torch.unique(nonzeros, return_counts=True)[1]
 
                 # Expected non-zeros per output feature
-                expected = [round(in_features * percent_on)] * out_features
+                expected = [round(in_features * (1.0 - sparsity))] * out_features
                 self.assertSequenceEqual(counts.numpy().tolist(), expected)
 
     def test_sparse_weights_2d(self):
@@ -46,24 +46,24 @@ class TestSparseWeights(unittest.TestCase):
         input_size = in_channels * kernel_size[0] * kernel_size[1]
 
         with torch.no_grad():
-            for percent_on in [0.1, 0.5, 0.9]:
+            for sparsity in [0.1, 0.5, 0.9]:
                 cnn = torch.nn.Conv2d(in_channels=in_channels,
                                       out_channels=out_channels,
                                       kernel_size=kernel_size)
-                sparse = SparseWeights2d(cnn, percent_on)
+                sparse = SparseWeights2d(cnn, sparsity=sparsity)
                 nonzeros = torch.nonzero(sparse.module.weight, as_tuple=True)[0]
                 counts = torch.unique(nonzeros, return_counts=True)[1]
 
                 # Expected non-zeros per output channel
-                expected = [round(input_size * percent_on)] * out_channels
+                expected = [round(input_size * (1.0 - sparsity))] * out_channels
                 self.assertSequenceEqual(counts.numpy().tolist(), expected)
 
     def test_rezero_after_forward_1d(self):
         in_features, out_features = 784, 10
-        for percent_on in [0.1, 0.5, 0.9]:
+        for sparsity in [0.1, 0.5, 0.9]:
             linear = torch.nn.Linear(in_features=in_features,
                                      out_features=out_features)
-            sparse = SparseWeights(linear, percent_on)
+            sparse = SparseWeights(linear, sparsity=sparsity)
 
             # Ensure weights are not sparse
             sparse.module.weight.data.fill_(1.0)
@@ -74,7 +74,7 @@ class TestSparseWeights(unittest.TestCase):
             # When training, the forward function should set weights back to zero.
             nonzeros = torch.nonzero(sparse.module.weight, as_tuple=True)[0]
             counts = torch.unique(nonzeros, return_counts=True)[1]
-            expected = [round(in_features * percent_on)] * out_features
+            expected = [round(in_features * (1.0 - sparsity))] * out_features
             self.assertSequenceEqual(counts.numpy().tolist(), expected)
 
     def test_rezero_after_forward_2d(self):
@@ -82,11 +82,11 @@ class TestSparseWeights(unittest.TestCase):
         input_size = in_channels * kernel_size[0] * kernel_size[1]
 
         with torch.no_grad():
-            for percent_on in [0.1, 0.5, 0.9]:
+            for sparsity in [0.1, 0.5, 0.9]:
                 cnn = torch.nn.Conv2d(in_channels=in_channels,
                                       out_channels=out_channels,
                                       kernel_size=kernel_size)
-                sparse = SparseWeights2d(cnn, percent_on)
+                sparse = SparseWeights2d(cnn, sparsity=sparsity)
 
                 # Ensure weights are not sparse
                 sparse.module.weight.data.fill_(1.0)
@@ -97,7 +97,7 @@ class TestSparseWeights(unittest.TestCase):
                 # When training, the forward function should set weights back to zero.
                 nonzeros = torch.nonzero(sparse.module.weight, as_tuple=True)[0]
                 counts = torch.unique(nonzeros, return_counts=True)[1]
-                expected = [round(input_size * percent_on)] * out_channels
+                expected = [round(input_size * (1.0 - sparsity))] * out_channels
                 self.assertSequenceEqual(counts.numpy().tolist(), expected)
 
 
