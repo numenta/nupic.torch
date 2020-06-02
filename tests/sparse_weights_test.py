@@ -17,7 +17,7 @@
 #
 #  http://numenta.org/licenses/
 #
-
+import io
 import unittest
 
 import torch
@@ -99,6 +99,26 @@ class TestSparseWeights(unittest.TestCase):
                 counts = torch.unique(nonzeros, return_counts=True)[1]
                 expected = [round(input_size * percent_on)] * out_channels
                 self.assertSequenceEqual(counts.numpy().tolist(), expected)
+
+    def test_serialization(self):
+        in_features, out_features = 784, 10
+        sparse = SparseWeights(torch.nn.Linear(
+            in_features=in_features, out_features=out_features), 0.1)
+
+        with io.BytesIO() as buffer:
+            torch.save(sparse.state_dict(), buffer)
+            buffer.seek(0)
+
+            restored = SparseWeights(torch.nn.Linear(
+                in_features=in_features, out_features=out_features), 0.1)
+            restored.load_state_dict(torch.load(buffer))
+
+        with torch.no_grad():
+            x = torch.ones((1,) + (in_features,))
+            expected = sparse(x)
+            actual = restored(x)
+            self.assertSequenceEqual(actual.numpy().tolist(),
+                                     expected.numpy().tolist())
 
 
 if __name__ == "__main__":

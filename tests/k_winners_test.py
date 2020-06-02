@@ -18,6 +18,7 @@
 #
 # http://numenta.org/licenses/
 # ----------------------------------------------------------------------
+import io
 import unittest
 
 import torch
@@ -425,6 +426,34 @@ class KWinnersTest(unittest.TestCase):
 
         result = F.KWinners.forward(ctx, x, self.duty_cycle2, k=3, boost_strength=1.0)
         self.assertTrue(result.eq(expected1).all() or result.eq(expected2).all())
+
+    def test_serialization(self):
+        x = self.x2
+        kw_args = dict(
+            n=6,
+            percent_on=0.333,
+            k_inference_factor=1.5,
+            boost_strength=1.0,
+            boost_strength_factor=0.5,
+            duty_cycle_period=1000)
+
+        kw = KWinners(**kw_args)
+        kw.train(mode=True)
+        for _ in range(10):
+            kw(x)
+        kw.train(mode=False)
+
+        with io.BytesIO() as buffer:
+            torch.save(kw.state_dict(), buffer)
+            buffer.seek(0)
+            restored_kw = KWinners(**kw_args)
+            restored_kw.train(mode=False)
+            restored_kw.load_state_dict(torch.load(buffer))
+
+        expected = kw(x)
+        actual = restored_kw(x)
+        self.assertEqual(actual.shape, expected.shape)
+        self.assertTrue(actual.eq(expected).all())
 
 
 if __name__ == "__main__":
