@@ -17,8 +17,8 @@
 #
 #  http://numenta.org/licenses/
 #
-from collections import OrderedDict
 import warnings
+from collections import OrderedDict
 
 from torch import nn
 from torch.hub import load_state_dict_from_url
@@ -74,14 +74,16 @@ class MNISTSparseCNN(nn.Sequential):
     ):
         if cnn_weight_sparsity is not None:
             warnings.warn(
-                "Parameter `cnn_weight_sparsity` is deprecated. Use `cnn_sparsity` instead.",
+                "Parameter `cnn_weight_sparsity` is deprecated. Use "
+                "`cnn_sparsity` instead.",
                 DeprecationWarning,
             )
             cnn_sparsity = (1.0 - cnn_weight_sparsity[0], 1.0 - cnn_weight_sparsity[1])
 
         if linear_weight_sparsity is not None:
             warnings.warn(
-                "Parameter `linear_weight_sparsity` is deprecated. Use `linear_sparsity` instead.",
+                "Parameter `linear_weight_sparsity` is deprecated. Use "
+                "`linear_sparsity` instead.",
                 DeprecationWarning,
             )
             linear_sparsity = 1.0 - linear_weight_sparsity
@@ -180,7 +182,7 @@ class GSCSparseCNN(nn.Sequential):
                           the channels at each location) or globally (across the
                           whole input and across all channels)
     :param cnn_sparsity: Percent of weights that zero
-    :param linear_sparsity: Percent of weights that are zero in the 
+    :param linear_sparsity: Percent of weights that are zero in the
                             linear layer.
     """
 
@@ -204,14 +206,16 @@ class GSCSparseCNN(nn.Sequential):
 
         if cnn_weight_sparsity is not None:
             warnings.warn(
-                "Parameter `cnn_weight_sparsity` is deprecated. Use `cnn_sparsity` instead.",
+                "Parameter `cnn_weight_sparsity` is deprecated. Use "
+                "`cnn_sparsity` instead.",
                 DeprecationWarning,
             )
             cnn_sparsity = (1.0 - cnn_weight_sparsity[0], 1.0 - cnn_weight_sparsity[1])
 
         if linear_weight_sparsity is not None:
             warnings.warn(
-                "Parameter `linear_weight_sparsity` is deprecated. Use `linear_sparsity` instead.",
+                "Parameter `linear_weight_sparsity` is deprecated. Use "
+                "`linear_sparsity` instead.",
                 DeprecationWarning,
             )
             linear_sparsity = 1.0 - linear_weight_sparsity
