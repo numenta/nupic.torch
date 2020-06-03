@@ -19,12 +19,13 @@
 #
 
 import unittest
-import torch
 
+import torch
 from torch.hub import load_state_dict_from_url
+
 from nupic.torch.models.sparse_cnn import gsc_sparse_cnn
 
-GSC_SPARSE_CNN_EAC5F79F = "http://public.numenta.com/pytorch/hub/gsc_sparse_cnn-eac5f79f.pth"
+GSC_SPARSE_CNN_EAC5F79F = "http://public.numenta.com/pytorch/hub/gsc_sparse_cnn-eac5f79f.pth"  # noqa: E501
 
 
 class SerializationTestCase(unittest.TestCase):
