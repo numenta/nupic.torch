@@ -46,5 +46,5 @@ class SerializationTestCase(unittest.TestCase):
             self.assertAlmostEqual(y1.sum(), y2.sum())
 
 
-if __name__ == '__main__':
+if __name__ == "__main__":
     unittest.main()
