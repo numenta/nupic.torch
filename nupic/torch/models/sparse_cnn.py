@@ -18,6 +18,7 @@
 #  http://numenta.org/licenses/
 #
 from collections import OrderedDict
+import warnings
 
 from torch import nn
 from torch.hub import load_state_dict_from_url
@@ -40,12 +41,9 @@ class MNISTSparseCNN(nn.Sequential):
     :param cnn_out_channels: output channels for each CNN layer
     :param cnn_percent_on: Percent of units allowed to remain on each convolution
                            layer
-    :param cnn_weight_sparsity: Percent of weights that are allowed to be non-zero
     :param linear_units: Number of units in the linear layer
     :param linear_percent_on: Percent of units allowed to remain on the linear
                               layer
-    :param linear_weight_sparsity: Percent of weights that are allowed to be
-                                   non-zero in the linear layer
     :param k_inference_factor: During inference (training=False) we increase
                                `percent_on` in all sparse layers by this factor
     :param boost_strength: boost strength (0.0 implies no boosting)
@@ -53,26 +51,43 @@ class MNISTSparseCNN(nn.Sequential):
     :param duty_cycle_period: The period used to calculate duty cycles
     :param kwinner_local: Whether or not to choose the k-winners locally (across
                           the channels at each location) or globally (across the
-                          whole input and across all channels).
+                          whole input and across all channels)
+    :param cnn_sparsity: Percent of weights that are zero
+    :param linear_sparsity: Percent of weights that are zero.
     """
 
     def __init__(self,
                  cnn_out_channels=(32, 64),
                  cnn_percent_on=(0.1, 0.2),
-                 cnn_weight_sparsity=(0.6, 0.45),
+                 cnn_weight_sparsity=None,
                  linear_units=700,
                  linear_percent_on=0.2,
-                 linear_weight_sparsity=0.2,
+                 linear_weight_sparsity=None,
                  boost_strength=1.5,
                  boost_strength_factor=0.85,
                  k_inference_factor=1.0,
                  duty_cycle_period=1000,
-                 kwinner_local=False
-                 ):
+                 kwinner_local=False,
+                 cnn_sparsity=(0.4, 0.55),
+                 linear_sparsity=0.8):
+        if cnn_weight_sparsity is not None:
+            warnings.warn(
+                "Parameter `cnn_weight_sparsity` is deprecated. Use `cnn_sparsity` instead.",
+                DeprecationWarning,
+            )
+            cnn_sparsity = (1.0 - cnn_weight_sparsity[0], 1.0 - cnn_weight_sparsity[1])
+
+        if linear_weight_sparsity is not None:
+            warnings.warn(
+                "Parameter `linear_weight_sparsity` is deprecated. Use `linear_sparsity` instead.",
+                DeprecationWarning,
+            )
+            linear_sparsity = 1.0 - linear_weight_sparsity
+
         super(MNISTSparseCNN, self).__init__(OrderedDict([
             # First Sparse CNN layer
             ("cnn1", SparseWeights2d(nn.Conv2d(1, cnn_out_channels[0], 5),
-                                     cnn_weight_sparsity[0])),
+                                     sparsity=cnn_sparsity[0])),
             ("cnn1_maxpool", nn.MaxPool2d(2)),
             ("cnn1_kwinner", KWinners2d(channels=cnn_out_channels[0],
                                         percent_on=cnn_percent_on[0],
@@ -85,7 +100,7 @@ class MNISTSparseCNN(nn.Sequential):
             # Second Sparse CNN layer
             ("cnn2", SparseWeights2d(nn.Conv2d(cnn_out_channels[0],
                                                cnn_out_channels[1], 5),
-                                     cnn_weight_sparsity[1])),
+                                     sparsity=cnn_sparsity[1])),
             ("cnn2_maxpool", nn.MaxPool2d(2)),
             ("cnn2_kwinner", KWinners2d(channels=cnn_out_channels[1],
                                         percent_on=cnn_percent_on[1],
@@ -100,7 +115,7 @@ class MNISTSparseCNN(nn.Sequential):
             # Sparse Linear layer
             ("linear", SparseWeights(
                 nn.Linear(16 * cnn_out_channels[1], linear_units),
-                weight_sparsity=linear_weight_sparsity)),
+                sparsity=linear_sparsity)),
             ("linear_kwinner", KWinners(n=linear_units,
                                         percent_on=linear_percent_on,
                                         k_inference_factor=k_inference_factor,
@@ -123,12 +138,9 @@ class GSCSparseCNN(nn.Sequential):
     :param cnn_out_channels: output channels for each CNN layer
     :param cnn_percent_on: Percent of units allowed to remain on each convolution
                            layer
-    :param cnn_weight_sparsity: Percent of weights that are allowed to be non-zero
     :param linear_units: Number of units in the linear layer
     :param linear_percent_on: Percent of units allowed to remain on the linear
                               layer
-    :param linear_weight_sparsity: Percent of weights that are allowed to be
-                                   non-zero in the linear layer
     :param k_inference_factor: During inference (training=False) we increase
                                `percent_on` in all sparse layers by this factor
     :param boost_strength: boost strength (0.0 implies no boosting)
@@ -136,28 +148,49 @@ class GSCSparseCNN(nn.Sequential):
     :param duty_cycle_period: The period used to calculate duty cycles
     :param kwinner_local: Whether or not to choose the k-winners locally (across
                           the channels at each location) or globally (across the
-                          whole input and across all channels).
+                          whole input and across all channels)
+    :param cnn_sparsity: Percent of weights that zero
+    :param linear_sparsity: Percent of weights that are zero in the 
+                            linear layer.
     """
 
     def __init__(self,
                  cnn_out_channels=(64, 64),
                  cnn_percent_on=(0.095, 0.125),
-                 cnn_weight_sparsity=(0.5, 0.2),
+                 cnn_weight_sparsity=None,
                  linear_units=1000,
                  linear_percent_on=0.1,
-                 linear_weight_sparsity=0.1,
+                 linear_weight_sparsity=None,
                  boost_strength=1.5,
                  boost_strength_factor=0.9,
                  k_inference_factor=1.0,
                  duty_cycle_period=1000,
-                 kwinner_local=False):
+                 kwinner_local=False,
+                 cnn_sparsity=(0.5, 0.8),
+                 linear_sparsity=0.9):
         super(GSCSparseCNN, self).__init__()
+
+        if cnn_weight_sparsity is not None:
+            warnings.warn(
+                "Parameter `cnn_weight_sparsity` is deprecated. Use `cnn_sparsity` instead.",
+                DeprecationWarning,
+            )
+            cnn_sparsity = (1.0 - cnn_weight_sparsity[0], 1.0 - cnn_weight_sparsity[1])
+
+
+        if linear_weight_sparsity is not None:
+            warnings.warn(
+                "Parameter `linear_weight_sparsity` is deprecated. Use `linear_sparsity` instead.",
+                DeprecationWarning,
+            )
+            linear_sparsity = 1.0 - linear_weight_sparsity
+
         # input_shape = (1, 32, 32)
         # First Sparse CNN layer
-        if cnn_weight_sparsity[0] < 1.0:
+        if cnn_sparsity[0] < 1.0:
             self.add_module("cnn1", SparseWeights2d(
                 nn.Conv2d(1, cnn_out_channels[0], 5),
-                weight_sparsity=cnn_weight_sparsity[0]))
+                sparsity=cnn_sparsity[0]))
         else:
             self.add_module("cnn1", nn.Conv2d(1, cnn_out_channels[0], 5))
         self.add_module("cnn1_batchnorm", nn.BatchNorm2d(cnn_out_channels[0],
@@ -174,10 +207,10 @@ class GSCSparseCNN(nn.Sequential):
         self.add_module("cnn1_maxpool", nn.MaxPool2d(2))
 
         # Second Sparse CNN layer
-        if cnn_weight_sparsity[1] < 1.0:
+        if cnn_sparsity[1] < 1.0:
             self.add_module("cnn2", SparseWeights2d(
                 nn.Conv2d(cnn_out_channels[0], cnn_out_channels[1], 5),
-                weight_sparsity=cnn_weight_sparsity[1]))
+                sparsity=cnn_sparsity[1]))
         else:
             self.add_module("cnn2", nn.Conv2d(cnn_out_channels[0],
                                               cnn_out_channels[1], 5))
@@ -199,7 +232,7 @@ class GSCSparseCNN(nn.Sequential):
         # Sparse Linear layer
         self.add_module("linear", SparseWeights(
             nn.Linear(25 * cnn_out_channels[1], linear_units),
-            weight_sparsity=linear_weight_sparsity))
+            sparsity=linear_sparsity))
         self.add_module("linear_bn", nn.BatchNorm1d(linear_units, affine=False))
         self.add_module("linear_kwinner", KWinners(
             n=linear_units,
@@ -226,7 +259,7 @@ class GSCSuperSparseCNN(GSCSparseCNN):
     def __init__(self):
         super(GSCSuperSparseCNN, self).__init__(
             linear_units=1500,
-            linear_weight_sparsity=0.05,
+            linear_sparsity=0.95
         )
 
 
