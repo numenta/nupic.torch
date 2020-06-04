@@ -222,7 +222,7 @@ class GSCSparseCNN(nn.Sequential):
 
         # input_shape = (1, 32, 32)
         # First Sparse CNN layer
-        if cnn_sparsity[0] < 1.0:
+        if cnn_sparsity[0] > 0:
             self.add_module(
                 "cnn1",
                 SparseWeights2d(
@@ -249,7 +249,7 @@ class GSCSparseCNN(nn.Sequential):
         self.add_module("cnn1_maxpool", nn.MaxPool2d(2))
 
         # Second Sparse CNN layer
-        if cnn_sparsity[1] < 1.0:
+        if cnn_sparsity[1] > 0:
             self.add_module(
                 "cnn2",
                 SparseWeights2d(

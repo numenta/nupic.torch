@@ -95,6 +95,14 @@ class SparseWeightsBase(nn.Module, metaclass=abc.ABCMeta):
             self.rezero_weights()
         return self.module(x)
 
+    @property
+    def weight_sparsity(self):
+        warnings.warn(
+            "Parameter `weight_sparsity` is deprecated. Use `sparsity` instead.",
+            DeprecationWarning,
+        )
+        return 1.0 - self.sparsity
+
     @abc.abstractmethod
     def compute_indices(self):
         """For each unit, decide which weights are going to be zero.
