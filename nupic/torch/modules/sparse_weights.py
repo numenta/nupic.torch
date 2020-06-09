@@ -135,10 +135,10 @@ class SparseWeights(SparseWeightsBase):
     """
 
     def __init__(self, module, weight_sparsity=None, sparsity=None):
+        assert isinstance(module, nn.Linear)
         super(SparseWeights, self).__init__(
             module, weight_sparsity=weight_sparsity, sparsity=sparsity
         )
-        assert isinstance(module, nn.Linear)
 
     def compute_indices(self):
         # For each unit, decide which weights are going to be zero
@@ -176,10 +176,10 @@ class SparseWeights2d(SparseWeightsBase):
     """
 
     def __init__(self, module, weight_sparsity=None, sparsity=None):
+        assert isinstance(module, nn.Conv2d)
         super(SparseWeights2d, self).__init__(
             module, weight_sparsity=weight_sparsity, sparsity=sparsity
         )
-        assert isinstance(module, nn.Conv2d)
 
     def compute_indices(self):
         # For each unit, decide which weights are going to be zero
