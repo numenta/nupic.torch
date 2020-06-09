@@ -80,7 +80,7 @@ class SparseWeightsBase(nn.Module, metaclass=abc.ABCMeta):
                 DeprecationWarning,
             )
 
-        assert 0 < sparsity < 1
+        assert 0 <= sparsity <= 1
 
         self.module = module
         self.sparsity = sparsity
