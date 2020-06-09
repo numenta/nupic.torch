@@ -119,6 +119,23 @@ class SparseWeightsBase(nn.Module, metaclass=abc.ABCMeta):
         """
         raise NotImplementedError
 
+    @property
+    def weight(self):
+        return self.module.weight
+
+    @property
+    def off_mask(self):
+        out_shape = self.module.weight.shape[0]
+        zero_idx = (self.zero_weights[0].long(), self.zero_weights[1].long())
+        weight_mask = torch.zeros_like(self.module.weight).bool()
+        weight_mask.view(out_shape, -1)[zero_idx] = 1
+        return weight_mask
+
+    @off_mask.setter
+    def off_mask(self, mask):
+        out_shape = self.module.weight.shape[0]
+        self.zero_weights = mask.view(out_shape, -1).nonzero().permute(1, 0)
+
 
 class SparseWeights(SparseWeightsBase):
     """Enforce weight sparsity on linear module during training.
