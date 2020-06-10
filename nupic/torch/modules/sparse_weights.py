@@ -125,6 +125,13 @@ class SparseWeightsBase(nn.Module, metaclass=abc.ABCMeta):
 
     @property
     def off_mask(self):
+        """
+        Accesses a boolean mask of size `self.weight.shape` which have non-zero
+        entries as defined by `zero_weights`. Thus one may call
+        ```
+        self.weight[~self.off_mask]  # returns weights that are currently on
+        ```
+        """
         out_shape = self.module.weight.shape[0]
         zero_idx = (self.zero_weights[0].long(), self.zero_weights[1].long())
         weight_mask = torch.zeros_like(self.module.weight).bool()
@@ -133,6 +140,10 @@ class SparseWeightsBase(nn.Module, metaclass=abc.ABCMeta):
 
     @off_mask.setter
     def off_mask(self, mask):
+        """
+        Sets the values of `zero_weights` according to a mask of size
+        `self.weight.shape`.
+        """
         mask = mask.bool()
         self.sparsity = mask.sum().item() / mask.numel()
         out_shape = self.module.weight.shape[0]
