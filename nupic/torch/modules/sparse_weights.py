@@ -73,14 +73,11 @@ class SparseWeightsBase(nn.Module, metaclass=abc.ABCMeta):
         super(SparseWeightsBase, self).__init__()
         assert weight_sparsity is not None or sparsity is not None
         if weight_sparsity is not None and sparsity is None:
-            assert 0 < weight_sparsity < 1
             sparsity = 1.0 - weight_sparsity
             warnings.warn(
                 "Parameter `weight_sparsity` is deprecated. Use `sparsity` instead.",
                 DeprecationWarning,
             )
-
-        assert 0 <= sparsity <= 1
 
         self.module = module
         self.sparsity = sparsity
@@ -123,32 +120,6 @@ class SparseWeightsBase(nn.Module, metaclass=abc.ABCMeta):
     def weight(self):
         return self.module.weight
 
-    @property
-    def off_mask(self):
-        """
-        Accesses a boolean mask of size `self.weight.shape` which have non-zero
-        entries as defined by `zero_weights`. Thus one may call
-        ```
-        self.weight[~self.off_mask]  # returns weights that are currently on
-        ```
-        """
-        out_shape = self.module.weight.shape[0]
-        zero_idx = (self.zero_weights[0].long(), self.zero_weights[1].long())
-        weight_mask = torch.zeros_like(self.module.weight).bool()
-        weight_mask.view(out_shape, -1)[zero_idx] = 1
-        return weight_mask
-
-    @off_mask.setter
-    def off_mask(self, mask):
-        """
-        Sets the values of `zero_weights` according to a mask of size
-        `self.weight.shape`.
-        """
-        mask = mask.bool()
-        self.sparsity = mask.sum().item() / mask.numel()
-        out_shape = self.module.weight.shape[0]
-        self.zero_weights = mask.view(out_shape, -1).nonzero().permute(1, 0)
-
 
 class SparseWeights(SparseWeightsBase):
     """Enforce weight sparsity on linear module during training.
@@ -166,6 +137,7 @@ class SparseWeights(SparseWeightsBase):
 
     def __init__(self, module, weight_sparsity=None, sparsity=None):
         assert isinstance(module, nn.Linear)
+        assert 0 < (weight_sparsity or sparsity) < 1
         super(SparseWeights, self).__init__(
             module, weight_sparsity=weight_sparsity, sparsity=sparsity
         )
@@ -207,6 +179,7 @@ class SparseWeights2d(SparseWeightsBase):
 
     def __init__(self, module, weight_sparsity=None, sparsity=None):
         assert isinstance(module, nn.Conv2d)
+        assert 0 < (weight_sparsity or sparsity) < 1
         super(SparseWeights2d, self).__init__(
             module, weight_sparsity=weight_sparsity, sparsity=sparsity
         )
