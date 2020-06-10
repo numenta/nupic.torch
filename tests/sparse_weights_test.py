@@ -23,10 +23,10 @@ import unittest
 import torch
 
 from nupic.torch.modules import (
-    SparseWeights,
-    SparseWeights2d,
     PrunableSparseWeights,
     PrunableSparseWeights2d,
+    SparseWeights,
+    SparseWeights2d,
 )
 
 
