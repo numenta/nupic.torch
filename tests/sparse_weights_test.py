@@ -22,7 +22,12 @@ import unittest
 
 import torch
 
-from nupic.torch.modules import SparseWeights, SparseWeights2d
+from nupic.torch.modules import (
+    PrunableSparseWeights,
+    PrunableSparseWeights2d,
+    SparseWeights,
+    SparseWeights2d,
+)
 
 
 class TestSparseWeights(unittest.TestCase):
@@ -99,6 +104,78 @@ class TestSparseWeights(unittest.TestCase):
                 counts = torch.unique(nonzeros, return_counts=True)[1]
                 expected = [round(input_size * (1.0 - sparsity))] * out_channels
                 self.assertSequenceEqual(counts.numpy().tolist(), expected)
+
+    def test_prunable_dense_linear(self):
+
+        lin = torch.nn.Linear(10, 10)
+        sw = PrunableSparseWeights(lin, sparsity=0)
+
+        self.assertTrue(torch.all(sw.off_mask == torch.zeros_like(sw.weight)))
+        sw.weight[:] = 1
+        sw.rezero_weights()
+        self.assertTrue(sw.weight.sum() == sw.weight.numel())
+
+    def test_prunable_sparse_linear(self):
+
+        lin = torch.nn.Linear(10, 10)
+        sw = PrunableSparseWeights(lin, sparsity=1)
+
+        self.assertTrue(torch.all(sw.off_mask == torch.ones_like(sw.weight)))
+        sw.weight[:] = 1
+        sw.rezero_weights()
+        self.assertTrue(sw.weight.sum() == 0)
+
+    def test_prunable_dense_conv(self):
+
+        conv = torch.nn.Conv2d(4, 4, 3)
+        sw = PrunableSparseWeights2d(conv, sparsity=0)
+
+        self.assertTrue(torch.all(sw.off_mask == torch.zeros_like(sw.weight)))
+        sw.weight[:] = 1
+        sw.rezero_weights()
+        self.assertTrue(sw.weight.sum() == sw.weight.numel())
+
+    def test_prunable_sparse_conv(self):
+
+        conv = torch.nn.Conv2d(4, 4, 3)
+        sw = PrunableSparseWeights2d(conv, sparsity=1)
+
+        self.assertTrue(torch.all(sw.off_mask == torch.ones_like(sw.weight)))
+        sw.weight[:] = 1
+        sw.rezero_weights()
+        self.assertTrue(sw.weight.sum() == 0)
+
+    def test_linear_prunable_off_mask(self):
+
+        lin = torch.nn.Linear(4, 4)
+        sw = PrunableSparseWeights(lin, sparsity=0)
+
+        sw.off_mask = torch.tensor([
+            [1, 1, 0, 0],
+            [0, 0, 1, 1],
+            [1, 1, 0, 0],
+            [0, 0, 0, 0]
+        ])
+        self.assertTrue(sw.sparsity == 6 / 16)
+        sw.weight[:] = 1
+        sw.rezero_weights()
+        self.assertTrue(sw.weight.sum() == 10)
+
+    def test_conv_prunable_off_mask(self):
+
+        conv = torch.nn.Conv2d(2, 2, 2, 2)
+        sw = PrunableSparseWeights2d(conv, sparsity=0)
+
+        sw.off_mask = torch.tensor([
+            [1, 1, 0, 0],
+            [0, 0, 1, 1],
+            [1, 1, 0, 0],
+            [0, 0, 0, 0]
+        ]).view(2, 2, 2, 2)
+        self.assertTrue(sw.sparsity == 6 / 16)
+        sw.weight[:] = 1
+        sw.rezero_weights()
+        self.assertTrue(sw.weight.sum() == 10)
 
 
 if __name__ == "__main__":

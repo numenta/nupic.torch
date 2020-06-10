@@ -24,3 +24,7 @@ from .sparse_weights import (
     SparseWeights, SparseWeights2d, rezero_weights,
     normalize_sparse_weights
 )
+from .prunable_sparse_weights import ( 
+    PrunableSparseWeights,
+    PrunableSparseWeights2d,
+)
