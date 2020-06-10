@@ -133,6 +133,8 @@ class SparseWeightsBase(nn.Module, metaclass=abc.ABCMeta):
 
     @off_mask.setter
     def off_mask(self, mask):
+        mask = mask.bool()
+        self.sparsity = mask.sum().item() / mask.numel()
         out_shape = self.module.weight.shape[0]
         self.zero_weights = mask.view(out_shape, -1).nonzero().permute(1, 0)
 
