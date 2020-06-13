@@ -26,7 +26,7 @@ import nupic.torch.functions as F
 from nupic.torch.modules import KWinners
 
 
-class TestContext(object):
+class LocalTestContext(object):
     def __init__(self):
         self.saved_tensors = None
 
@@ -121,7 +121,7 @@ class KWinnersTest(unittest.TestCase):
 
         # Set up test input and context.
         x = self.x
-        ctx = TestContext()
+        ctx = LocalTestContext()
 
         # Test forward with boost factor of 0.
         result = F.KWinners.forward(ctx, x, self.duty_cycle, k=3, boost_strength=0.0)
@@ -163,7 +163,7 @@ class KWinnersTest(unittest.TestCase):
 
         # Set up test input and context.
         x = self.x2
-        ctx = TestContext()
+        ctx = LocalTestContext()
 
         # Test forward with boost factor of 0.
         result = F.KWinners.forward(ctx, x, self.duty_cycle2, k=3, boost_strength=0.0)
@@ -216,7 +216,7 @@ class KWinnersTest(unittest.TestCase):
 
         # Set up test input and context.
         x = self.x3
-        ctx = TestContext()
+        ctx = LocalTestContext()
 
         # Test forward with boost factor of 0.
         result = F.KWinners.forward(ctx, x, self.duty_cycle3, k=2, boost_strength=0.0)
@@ -252,7 +252,7 @@ class KWinnersTest(unittest.TestCase):
 
         # Set up test input and context.
         x = self.x4
-        ctx = TestContext()
+        ctx = LocalTestContext()
 
         # Test forward with boost factor of 1 and k=0.
         result = F.KWinners.forward(ctx, x, self.duty_cycle4, k=0, boost_strength=1)
@@ -403,7 +403,7 @@ class KWinnersTest(unittest.TestCase):
         # Force tie breaking
         x[0, 5] = x[0, 1]
 
-        ctx = TestContext()
+        ctx = LocalTestContext()
 
         # Expected with [0, 1] winning the tie-break (pytorch 1.2)
         expected1 = torch.zeros_like(x)

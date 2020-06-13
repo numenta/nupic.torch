@@ -26,7 +26,7 @@ import nupic.torch.functions as F
 from nupic.torch.modules import KWinners2d
 
 
-class TestContext(object):
+class LocalTestContext(object):
     def __init__(self):
         self.saved_tensors = None
 
@@ -71,7 +71,7 @@ class KWinners2DTest(unittest.TestCase):
         """Equal duty cycle, boost factor 0, k=4, batch size 1."""
         x = self.x
 
-        ctx = TestContext()
+        ctx = LocalTestContext()
 
         result = F.KWinners2dGlobal.forward(ctx, x, self.duty_cycle, k=4,
                                             boost_strength=0.0)
@@ -110,7 +110,7 @@ class KWinners2DTest(unittest.TestCase):
         """Equal duty cycle, boost factor 0, k=3."""
         x = self.x
 
-        ctx = TestContext()
+        ctx = LocalTestContext()
 
         result = F.KWinners2dGlobal.forward(ctx, x, self.duty_cycle, k=3,
                                             boost_strength=0.0)
@@ -148,7 +148,7 @@ class KWinners2DTest(unittest.TestCase):
         """Equal duty cycle, boost factor=0, k=4, batch size=2."""
         x = self.x2
 
-        ctx = TestContext()
+        ctx = LocalTestContext()
 
         result = F.KWinners2dGlobal.forward(ctx, x, self.duty_cycle, k=4,
                                             boost_strength=0.0)
@@ -185,7 +185,7 @@ class KWinners2DTest(unittest.TestCase):
         """Equal duty cycle, boost factor=0, k=3, batch size=2."""
         x = self.x2
 
-        ctx = TestContext()
+        ctx = LocalTestContext()
 
         result = F.KWinners2dGlobal.forward(ctx, x, self.duty_cycle, k=3,
                                             boost_strength=0.0)

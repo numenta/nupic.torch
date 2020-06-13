@@ -148,7 +148,7 @@ class KWinner2dLocalTest(unittest.TestCase):
         """
         Test gradient
         """
-        x = torch.tensor(self.x[0:2], requires_grad=True)
+        x = self.x[0:2].clone().detach().requires_grad_(True)
         n, c, h, w = x.shape
         kw = KWinners2d(
             percent_on=0.5,  # k=2
