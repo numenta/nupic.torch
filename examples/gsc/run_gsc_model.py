@@ -73,7 +73,7 @@ DATAPATH = Path("data")
 EXTRACTPATH = DATAPATH / "raw"
 
 
-def train(model, loader, optimizer, criterion, device):
+def train(model, loader, optimizer, criterion, device, post_batch_callback=None):
     """
     Train the model using given dataset loader.
     Called on every epoch.
@@ -88,6 +88,8 @@ def train(model, loader, optimizer, criterion, device):
     :type criterion: function
     :param device:
     :type device: :class:`torch.device`
+    :param post_batch_callback: function(model) to call after every batch
+    :type post_batch_callback: function
     """
     model.train()
     for data, target in tqdm(loader, desc="Train", leave=False):
@@ -97,6 +99,8 @@ def train(model, loader, optimizer, criterion, device):
         loss = criterion(output, target)
         loss.backward()
         optimizer.step()
+        if post_batch_callback is not None:
+            post_batch_callback(model)
 
 
 def test(model, loader, criterion, device, desc="Test"):
@@ -132,6 +136,10 @@ def test(model, loader, criterion, device, desc="Test"):
     return {"accuracy": total_correct / len(loader.dataset),
             "loss": loss / len(loader.dataset),
             "total_correct": total_correct}
+
+
+def post_batch(model):
+    model.apply(rezero_weights)
 
 
 def do_training(model, device):
@@ -194,9 +202,8 @@ def do_training(model, device):
 
         model.apply(update_boost_strength)
         train(model=model, loader=train_loader, optimizer=sgd,
-              criterion=F.nll_loss, device=device)
+              criterion=F.nll_loss, device=device, post_batch_callback=post_batch)
         lr_scheduler.step()
-        model.apply(rezero_weights)
 
         results = test(model=model, loader=valid_loader, criterion=F.nll_loss,
                        device=device)

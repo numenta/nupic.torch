@@ -76,7 +76,8 @@ class TestSparseWeights(unittest.TestCase):
             x = torch.ones((1,) + (in_features,))
             sparse(x)
 
-            # When training, the forward function should set weights back to zero.
+            # Rezero, verify the weights become sparse
+            sparse.rezero_weights()
             nonzeros = torch.nonzero(sparse.module.weight, as_tuple=True)[0]
             counts = torch.unique(nonzeros, return_counts=True)[1]
             expected = [round(in_features * (1.0 - sparsity))] * out_features
@@ -99,7 +100,8 @@ class TestSparseWeights(unittest.TestCase):
                 x = torch.ones((1,) + (in_channels, kernel_size[0], kernel_size[1]))
                 sparse(x)
 
-                # When training, the forward function should set weights back to zero.
+                # Rezero, verify the weights become sparse
+                sparse.rezero_weights()
                 nonzeros = torch.nonzero(sparse.module.weight, as_tuple=True)[0]
                 counts = torch.unique(nonzeros, return_counts=True)[1]
                 expected = [round(input_size * (1.0 - sparsity))] * out_channels
