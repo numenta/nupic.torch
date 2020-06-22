@@ -19,8 +19,6 @@
 # http://numenta.org/licenses/
 # ----------------------------------------------------------------------
 
-import torch.nn as nn
-
 from .sparse_weights import SparseWeights, SparseWeights2d
 
 
@@ -56,10 +54,9 @@ class PrunableSparseWeights(SparseWeights, PrunableSparseWeightBase):
     changed dynamically through the `off_mask` property.
     """
     def __init__(self, module, weight_sparsity=None, sparsity=None):
-        assert isinstance(module, nn.Linear)
-        assert 0 <= (weight_sparsity or sparsity) <= 1
         super().__init__(
-            module, weight_sparsity=weight_sparsity, sparsity=sparsity
+            module, weight_sparsity=weight_sparsity, sparsity=sparsity,
+            allow_extremes=True
         )
 
 
@@ -70,8 +67,7 @@ class PrunableSparseWeights2d(SparseWeights2d, PrunableSparseWeightBase):
     """
 
     def __init__(self, module, weight_sparsity=None, sparsity=None):
-        assert isinstance(module, nn.Conv2d)
-        assert 0 <= (weight_sparsity or sparsity) <= 1
         super().__init__(
-            module, weight_sparsity=weight_sparsity, sparsity=sparsity
+            module, weight_sparsity=weight_sparsity, sparsity=sparsity,
+            allow_extremes=True
         )

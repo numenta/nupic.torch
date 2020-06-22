@@ -120,14 +120,24 @@ class SparseWeights(SparseWeightsBase):
       The module to sparsify the weights
     :param sparsity:
       Pct of weights that are zero in the layer.
+    :param allow_extremes:
+      Allow values sparsity=0 and sparsity=1. These values are often a sign that
+      there is a bug in the configuration, because they lead to Identity and
+      Zero layers, respectively, but they can make sense in scenarios where the
+      mask is dynamic.
     """
 
-    def __init__(self, module, weight_sparsity=None, sparsity=None):
+    def __init__(self, module, weight_sparsity=None, sparsity=None,
+                 allow_extremes=False):
         assert len(module.weight.shape) == 2, "Should resemble a nn.Linear"
-        assert 0 <= (weight_sparsity or sparsity) <= 1
         super(SparseWeights, self).__init__(
             module, weight_sparsity=weight_sparsity, sparsity=sparsity
         )
+
+        if allow_extremes:
+            assert 0 <= self.sparsity <= 1
+        else:
+            assert 0 < self.sparsity < 1
 
         # For each unit, decide which weights are going to be zero
         in_features = self.module.in_features
@@ -156,14 +166,24 @@ class SparseWeights2d(SparseWeightsBase):
       The module to sparsify the weights
     :param sparsity:
       Pct of weights that are zero in the layer.
+    :param allow_extremes:
+      Allow values sparsity=0 and sparsity=1. These values are often a sign that
+      there is a bug in the configuration, because they lead to Identity and
+      Zero layers, respectively, but they can make sense in scenarios where the
+      mask is dynamic.
     """
 
-    def __init__(self, module, weight_sparsity=None, sparsity=None):
+    def __init__(self, module, weight_sparsity=None, sparsity=None,
+                 allow_extremes=False):
         assert len(module.weight.shape) == 4, "Should resemble a nn.Conv2d"
-        assert 0 <= (weight_sparsity or sparsity) <= 1
         super(SparseWeights2d, self).__init__(
             module, weight_sparsity=weight_sparsity, sparsity=sparsity
         )
+
+        if allow_extremes:
+            assert 0 <= self.sparsity <= 1
+        else:
+            assert 0 < self.sparsity < 1
 
         # For each unit, decide which weights are going to be zero
         in_channels = self.module.in_channels
