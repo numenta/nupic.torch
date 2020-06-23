@@ -34,10 +34,15 @@ def upgrade_to_masked_sparseweights(state_dict):
     for name, tensor in state_dict.items():
         if "zero_weights" in name:
             weight_name = name.replace("zero_weights", "module.weight")
-            zero_mask = torch.ones(state_dict[weight_name].shape,
-                                   device=tensor.device)
-            zero_idx = (tensor[0].long(), tensor[1].long())
-            zero_mask.view(zero_mask.shape[0], -1)[zero_idx] = 0.0
+            zero_mask = torch.zeros(state_dict[weight_name].shape,
+                                    device=tensor.device)
+            if tensor.shape[0] == 2:
+                # Assume this is the standard previous format of SparseWeights
+                # and SparseWeights2d
+                zero_mask.view(zero_mask.shape[0], -1)[tuple(tensor)] = 1
+            else:
+                # Assume the tensor is a valid index list for the weight shape
+                zero_mask[tuple(tensor)] = 1
 
             upgraded.append((name.replace("zero_weights", "zero_mask"),
                              zero_mask))
