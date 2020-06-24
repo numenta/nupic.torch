@@ -19,9 +19,6 @@
 # http://numenta.org/licenses/
 # ----------------------------------------------------------------------
 
-import torch
-import torch.nn as nn
-
 from .sparse_weights import SparseWeights, SparseWeights2d
 
 
@@ -34,28 +31,21 @@ class PrunableSparseWeightBase(object):
     @property
     def off_mask(self):
         """
-        Accesses a boolean mask of size `self.weight.shape` which have non-zero
-        entries as defined by `zero_weights`. Thus one may call
+        Gets the value of `zero_mask` in bool format. Thus one may call
         ```
         self.weight[~self.off_mask]  # returns weights that are currently on
         ```
         """
-        out_shape = self.module.weight.shape[0]
-        zero_idx = (self.zero_weights[0].long(), self.zero_weights[1].long())
-        weight_mask = torch.zeros_like(self.module.weight).bool()
-        weight_mask.view(out_shape, -1)[zero_idx] = 1
-        return weight_mask
+        return self.zero_mask.bool()
 
     @off_mask.setter
     def off_mask(self, mask):
         """
-        Sets the values of `zero_weights` according to a mask of size
-        `self.weight.shape`.
+        Sets the values of `zero_mask`, updating self.sparsity to reflect the
+        sparsity of the new mask.
         """
-        mask = mask.bool()
         self.sparsity = mask.sum().item() / mask.numel()
-        out_shape = self.module.weight.shape[0]
-        self.zero_weights = mask.view(out_shape, -1).nonzero().permute(1, 0)
+        self.zero_mask[:] = mask
 
 
 class PrunableSparseWeights(SparseWeights, PrunableSparseWeightBase):
@@ -64,10 +54,9 @@ class PrunableSparseWeights(SparseWeights, PrunableSparseWeightBase):
     changed dynamically through the `off_mask` property.
     """
     def __init__(self, module, weight_sparsity=None, sparsity=None):
-        assert isinstance(module, nn.Linear)
-        assert 0 <= (weight_sparsity or sparsity) <= 1
-        super(SparseWeights, self).__init__(
-            module, weight_sparsity=weight_sparsity, sparsity=sparsity
+        super().__init__(
+            module, weight_sparsity=weight_sparsity, sparsity=sparsity,
+            allow_extremes=True
         )
 
 
@@ -78,8 +67,7 @@ class PrunableSparseWeights2d(SparseWeights2d, PrunableSparseWeightBase):
     """
 
     def __init__(self, module, weight_sparsity=None, sparsity=None):
-        assert isinstance(module, nn.Conv2d)
-        assert 0 <= (weight_sparsity or sparsity) <= 1
-        super(SparseWeights2d, self).__init__(
-            module, weight_sparsity=weight_sparsity, sparsity=sparsity
+        super().__init__(
+            module, weight_sparsity=weight_sparsity, sparsity=sparsity,
+            allow_extremes=True
         )

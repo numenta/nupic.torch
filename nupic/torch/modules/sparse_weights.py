@@ -81,8 +81,6 @@ class SparseWeightsBase(nn.Module, metaclass=abc.ABCMeta):
 
         self.module = module
         self.sparsity = sparsity
-        self.register_buffer("zero_weights", self.compute_indices())
-        self.rezero_weights()
 
     def extra_repr(self):
         return "sparsity={}".format(self.sparsity)
@@ -99,19 +97,8 @@ class SparseWeightsBase(nn.Module, metaclass=abc.ABCMeta):
         return 1.0 - self.sparsity
 
     @abc.abstractmethod
-    def compute_indices(self):
-        """For each unit, decide which weights are going to be zero.
-
-        :return: tensor indices for all non-zero weights. See :meth:`rezeroWeights`
-        """
-        raise NotImplementedError
-
-    @abc.abstractmethod
     def rezero_weights(self):
-        """Set the previously selected weights to zero.
-
-        See :meth:`computeIndices`
-        """
+        """Set the previously selected weights to zero."""
         raise NotImplementedError
 
     @property
@@ -131,36 +118,40 @@ class SparseWeights(SparseWeightsBase):
       The module to sparsify the weights
     :param sparsity:
       Pct of weights that are zero in the layer.
+    :param allow_extremes:
+      Allow values sparsity=0 and sparsity=1. These values are often a sign that
+      there is a bug in the configuration, because they lead to Identity and
+      Zero layers, respectively, but they can make sense in scenarios where the
+      mask is dynamic.
     """
 
-    def __init__(self, module, weight_sparsity=None, sparsity=None):
-        assert isinstance(module, nn.Linear)
-        assert 0 < (weight_sparsity or sparsity) < 1
+    def __init__(self, module, weight_sparsity=None, sparsity=None,
+                 allow_extremes=False):
+        assert len(module.weight.shape) == 2, "Should resemble a nn.Linear"
         super(SparseWeights, self).__init__(
             module, weight_sparsity=weight_sparsity, sparsity=sparsity
         )
 
-    def compute_indices(self):
+        if allow_extremes:
+            assert 0 <= self.sparsity <= 1
+        else:
+            assert 0 < self.sparsity < 1
+
         # For each unit, decide which weights are going to be zero
-        output_size, input_size = self.module.weight.shape
-        num_zeros = int(round(self.sparsity * input_size))
+        in_features = self.module.in_features
+        out_features = self.module.out_features
+        num_nz = int(round((1 - self.sparsity) * in_features))
+        zero_mask = torch.ones(out_features, in_features, dtype=torch.bool)
+        for out_feature in range(out_features):
+            in_indices = np.random.choice(in_features, num_nz, replace=False)
+            zero_mask[out_feature, in_indices] = False
+        # Use float16 because pytorch distributed nccl doesn't support bools
+        self.register_buffer("zero_mask", zero_mask.half())
 
-        output_indices = np.arange(output_size)
-        input_indices = np.array(
-            [np.random.permutation(input_size)[:num_zeros] for _ in output_indices],
-            dtype=np.long,
-        )
-
-        # Create tensor indices for all non-zero weights
-        zero_indices = np.empty((output_size, num_zeros, 2), dtype=np.long)
-        zero_indices[:, :, 0] = output_indices[:, None]
-        zero_indices[:, :, 1] = input_indices
-        zero_indices = zero_indices.reshape(-1, 2)
-        return torch.from_numpy(zero_indices.transpose())
+        self.rezero_weights()
 
     def rezero_weights(self):
-        zero_idx = (self.zero_weights[0].long(), self.zero_weights[1].long())
-        self.module.weight.data[zero_idx] = 0.0
+        self.module.weight.data[self.zero_mask.bool()] = 0
 
 
 class SparseWeights2d(SparseWeightsBase):
@@ -173,38 +164,41 @@ class SparseWeights2d(SparseWeightsBase):
       The module to sparsify the weights
     :param sparsity:
       Pct of weights that are zero in the layer.
+    :param allow_extremes:
+      Allow values sparsity=0 and sparsity=1. These values are often a sign that
+      there is a bug in the configuration, because they lead to Identity and
+      Zero layers, respectively, but they can make sense in scenarios where the
+      mask is dynamic.
     """
 
-    def __init__(self, module, weight_sparsity=None, sparsity=None):
-        assert isinstance(module, nn.Conv2d)
-        assert 0 < (weight_sparsity or sparsity) < 1
+    def __init__(self, module, weight_sparsity=None, sparsity=None,
+                 allow_extremes=False):
+        assert len(module.weight.shape) == 4, "Should resemble a nn.Conv2d"
         super(SparseWeights2d, self).__init__(
             module, weight_sparsity=weight_sparsity, sparsity=sparsity
         )
 
-    def compute_indices(self):
+        if allow_extremes:
+            assert 0 <= self.sparsity <= 1
+        else:
+            assert 0 < self.sparsity < 1
+
         # For each unit, decide which weights are going to be zero
         in_channels = self.module.in_channels
         out_channels = self.module.out_channels
         kernel_size = self.module.kernel_size
 
         input_size = in_channels * kernel_size[0] * kernel_size[1]
-        num_zeros = int(round(self.sparsity * input_size))
+        num_nz = int(round((1 - self.sparsity) * input_size))
+        zero_mask = torch.ones(out_channels, input_size, dtype=torch.bool)
+        for out_channel in range(out_channels):
+            in_indices = np.random.choice(input_size, num_nz, replace=False)
+            zero_mask[out_channel, in_indices] = False
+        zero_mask = zero_mask.view(out_channels, in_channels, *kernel_size)
+        # Use float16 because pytorch distributed nccl doesn't support bools
+        self.register_buffer("zero_mask", zero_mask.half())
 
-        output_indices = np.arange(out_channels)
-        input_indices = np.array(
-            [np.random.permutation(input_size)[:num_zeros] for _ in output_indices],
-            dtype=np.long,
-        )
-
-        # Create tensor indices for all non-zero weights
-        zero_indices = np.empty((out_channels, num_zeros, 2), dtype=np.long)
-        zero_indices[:, :, 0] = output_indices[:, None]
-        zero_indices[:, :, 1] = input_indices
-        zero_indices = zero_indices.reshape(-1, 2)
-
-        return torch.from_numpy(zero_indices.transpose())
+        self.rezero_weights()
 
     def rezero_weights(self):
-        zero_idx = (self.zero_weights[0].long(), self.zero_weights[1].long())
-        self.module.weight.data.view(self.module.out_channels, -1)[zero_idx] = 0.0
+        self.module.weight.data[self.zero_mask.bool()] = 0
