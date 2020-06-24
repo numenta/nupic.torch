@@ -63,7 +63,7 @@ class TestSparseWeights(unittest.TestCase):
                 expected = [round(input_size * (1.0 - sparsity))] * out_channels
                 self.assertSequenceEqual(counts.numpy().tolist(), expected)
 
-    def test_rezero_after_forward_1d(self):
+    def test_rezero_1d(self):
         in_features, out_features = 784, 10
         for sparsity in [0.1, 0.5, 0.9]:
             linear = torch.nn.Linear(in_features=in_features,
@@ -72,17 +72,15 @@ class TestSparseWeights(unittest.TestCase):
 
             # Ensure weights are not sparse
             sparse.module.weight.data.fill_(1.0)
-            sparse.train()
-            x = torch.ones((1,) + (in_features,))
-            sparse(x)
 
-            # When training, the forward function should set weights back to zero.
+            # Rezero, verify the weights become sparse
+            sparse.rezero_weights()
             nonzeros = torch.nonzero(sparse.module.weight, as_tuple=True)[0]
             counts = torch.unique(nonzeros, return_counts=True)[1]
             expected = [round(in_features * (1.0 - sparsity))] * out_features
             self.assertSequenceEqual(counts.numpy().tolist(), expected)
 
-    def test_rezero_after_forward_2d(self):
+    def test_rezero_2d(self):
         in_channels, kernel_size, out_channels = 64, (5, 5), 64
         input_size = in_channels * kernel_size[0] * kernel_size[1]
 
@@ -95,11 +93,9 @@ class TestSparseWeights(unittest.TestCase):
 
                 # Ensure weights are not sparse
                 sparse.module.weight.data.fill_(1.0)
-                sparse.train()
-                x = torch.ones((1,) + (in_channels, kernel_size[0], kernel_size[1]))
-                sparse(x)
 
-                # When training, the forward function should set weights back to zero.
+                # Rezero, verify the weights become sparse
+                sparse.rezero_weights()
                 nonzeros = torch.nonzero(sparse.module.weight, as_tuple=True)[0]
                 counts = torch.unique(nonzeros, return_counts=True)[1]
                 expected = [round(input_size * (1.0 - sparsity))] * out_channels
