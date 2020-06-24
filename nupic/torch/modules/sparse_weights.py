@@ -88,8 +88,6 @@ class SparseWeightsBase(nn.Module, metaclass=abc.ABCMeta):
         return "sparsity={}".format(self.sparsity)
 
     def forward(self, x):
-        if self.training:
-            self.rezero_weights()
         return self.module(x)
 
     @property
