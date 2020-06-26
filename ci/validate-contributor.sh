@@ -23,7 +23,7 @@
 set -o errexit
 
 # Download latest contributors list
-curl https://docs.google.com/spreadsheets/d/16zA3MtIBP7JyYQ4BuJ13qORH6PSAdW0Bw8DMTv6ff5I/export?format=csv  -o contributors.csv
+curl -L https://docs.google.com/spreadsheets/d/16zA3MtIBP7JyYQ4BuJ13qORH6PSAdW0Bw8DMTv6ff5I/export?format=csv  -o contributors.csv
 
 # Checks if the given user is a valid contributor
 # parameters:
