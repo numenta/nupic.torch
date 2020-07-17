@@ -3,43 +3,14 @@
 # platform: osx-64
 name: nupic.torch
 channels:
-  - pytorch
-  - intel
   - defaults
-  - conda-forge
 
 dependencies:
-  - python=3.7
+  - python=3.6
   - pip
 
-  # See requirements.txt
-  - pytorch=1.5
-
-  # See requirements-dev.txt
-  - black=19.3b0
-  - flake8=3.7.8
-  - flake8-black=0.1.1
-  - flake8-bugbear=19.8.0
-  - flake8-builtins=1.4.1
-  - flake8-comprehensions=2.2.0
-  - flake8-copyright=0.2.2
-  - flake8-mutable=1.2.0
-  - flake8-print=3.1.0
-  - flake8-quotes=2.1.0
-  - isort=4.3.21
-  - pep8-naming=0.8.2
-  - pytest=5.2.1
-  - pytest-runner=5.1
-
   - pip:
-      # Dependencies not available in conda
-      # See requirements-dev.txt
-      - docformatter==1.3
-      - flake8-breakpoint==1.1.0
-      - flake8-fixme==1.1.1
-      - flake8-isort==2.7.0
-      - flake8-mypy==17.8.0
-
       # Install nupic.torch in develop mode
+      - -r requirements-dev.txt
       - -e . --no-binary :all
 
