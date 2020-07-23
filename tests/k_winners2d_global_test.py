@@ -219,16 +219,6 @@ class KWinners2DTest(unittest.TestCase):
     def test_k_winners2d_module_one(self):
         x = self.x2
 
-        kw = KWinners2d(
-            percent_on=0.333,
-            channels=3,
-            k_inference_factor=0.5,
-            boost_strength=1.0,
-            boost_strength_factor=0.5,
-            duty_cycle_period=1000,
-            local=False
-        )
-
         expected = torch.zeros_like(x)
         expected[0, 0, 1, 0] = x[0, 0, 1, 0]
         expected[0, 0, 1, 1] = x[0, 0, 1, 1]
@@ -239,15 +229,27 @@ class KWinners2DTest(unittest.TestCase):
         expected[1, 1, 0, 1] = x[1, 1, 0, 1]
         expected[1, 2, 1, 1] = x[1, 2, 1, 1]
 
-        result = kw(x)
-        self.assertEqual(result.shape, expected.shape)
+        for break_ties in [True, False]:
+            kw = KWinners2d(
+                percent_on=0.333,
+                channels=3,
+                k_inference_factor=0.5,
+                boost_strength=1.0,
+                boost_strength_factor=0.5,
+                duty_cycle_period=1000,
+                local=False,
+                break_ties=break_ties,
+            )
 
-        num_correct = (result == expected).sum()
-        self.assertEqual(num_correct, result.reshape(-1).size()[0])
+            result = kw(x)
+            self.assertEqual(result.shape, expected.shape)
 
-        new_duty = torch.tensor([1.5000, 1.5000, 1.0000]) / 4.0
-        diff = (kw.duty_cycle.reshape(-1) - new_duty).abs().sum()
-        self.assertLessEqual(diff, 0.001)
+            num_correct = (result == expected).sum()
+            self.assertEqual(num_correct, result.reshape(-1).size()[0])
+
+            new_duty = torch.tensor([1.5000, 1.5000, 1.0000]) / 4.0
+            diff = (kw.duty_cycle.reshape(-1) - new_duty).abs().sum()
+            self.assertLessEqual(diff, 0.001)
 
     def test_k_winners2d_module_two(self):
         """
@@ -264,24 +266,57 @@ class KWinners2DTest(unittest.TestCase):
         expected[1, 1, 0, 1] = x[1, 1, 0, 1]
         expected[1, 2, 1, 1] = x[1, 2, 1, 1]
 
+        for break_ties in [True, False]:
+            kw = KWinners2d(
+                percent_on=0.25,
+                channels=3,
+                k_inference_factor=0.5,
+                boost_strength=1.0,
+                boost_strength_factor=0.5,
+                duty_cycle_period=1000,
+                local=False,
+                break_ties=break_ties,
+            )
+
+            kw.train(mode=True)
+            result = kw(x)
+            result = kw(x)
+            result = kw(x)
+            result = kw(x)
+            result = kw(x)
+            result = kw(x)
+
+            self.assertTrue(result.eq(expected).all())
+
+    def test_k_winners2d_relu(self):
+        x = torch.zeros(2, 4, 2, 2)
+        x[0, :, 0, 0] = torch.FloatTensor([-6, -7, -8, -9])
+        x[0, :, 0, 1] = torch.FloatTensor([0, 3, -42, -19])
+        x[0, :, 1, 0] = torch.FloatTensor([-1, -2, 3, -4])
+        x[0, :, 1, 1] = torch.FloatTensor([-10, -11, -12, -13])
+
+        x[1, :, 0, 0] = torch.FloatTensor([-10, -12, -31, -42])
+        x[1, :, 0, 1] = torch.FloatTensor([0, -1, 0, -6])
+        x[1, :, 1, 0] = torch.FloatTensor([-2, -10, -11, -4])
+        x[1, :, 1, 1] = torch.FloatTensor([-7, -1, -10, -3])
+
+        expected = torch.zeros(2, 4, 2, 2)
+        expected[0, 1, 0, 1] = 3
+        expected[0, 2, 1, 0] = 3
+
         kw = KWinners2d(
             percent_on=0.25,
-            channels=3,
+            channels=4,
             k_inference_factor=0.5,
             boost_strength=1.0,
             boost_strength_factor=0.5,
             duty_cycle_period=1000,
-            local=False
+            local=False,
+            break_ties=False,
+            relu=True,
         )
 
-        kw.train(mode=True)
         result = kw(x)
-        result = kw(x)
-        result = kw(x)
-        result = kw(x)
-        result = kw(x)
-        result = kw(x)
-
         self.assertTrue(result.eq(expected).all())
 
 

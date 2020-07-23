@@ -19,6 +19,8 @@
 # http://numenta.org/licenses/
 # ----------------------------------------------------------------------
 import abc
+import warnings
+from functools import partial
 
 import numpy as np
 import torch
@@ -167,6 +169,20 @@ class KWinners(KWinnersBase):
     :param duty_cycle_period:
       The period used to calculate duty cycles
     :type duty_cycle_period: int
+
+    :param break_ties:
+        Whether to use a strict k-winners. Using break_ties=False is faster but
+        may occasionally result in more than k active units.
+    :type break_ties: bool
+
+    :param relu:
+        This will simulate the effect of having a ReLU before the KWinners
+        without the extra computational overhead. Requires break_ties=False.
+    :type relu: bool
+
+    :param inplace:
+       Modify the input in-place. Only has an effect with break_ties=False.
+    :type inplace: bool
     """
 
     def __init__(
@@ -177,6 +193,9 @@ class KWinners(KWinnersBase):
         boost_strength=1.0,
         boost_strength_factor=0.9,
         duty_cycle_period=1000,
+        break_ties=True,
+        relu=False,
+        inplace=False,
     ):
 
         super(KWinners, self).__init__(
@@ -186,6 +205,23 @@ class KWinners(KWinnersBase):
             boost_strength_factor=boost_strength_factor,
             duty_cycle_period=duty_cycle_period,
         )
+
+        if break_ties and relu:
+            raise ValueError("ReLU is not supported with break_ties=True. "
+                             "Use an explicit nn.ReLU instead.")
+
+        if break_ties and inplace:
+            warnings.warn("inplace=True has no effect with break_ties=True")
+
+        self.break_ties = break_ties
+        self.inplace = inplace
+        self.relu = relu
+        if break_ties:
+            self.kwinner_function = F.KWinners.apply
+        else:
+            self.kwinner_function = partial(F.kwinners_no_tiebreak,
+                                            relu=relu, inplace=inplace)
+
         self.n = n
         self.k = int(round(n * percent_on))
         self.k_inference = int(self.k * self.k_inference_factor)
@@ -194,11 +230,12 @@ class KWinners(KWinnersBase):
     def forward(self, x):
 
         if self.training:
-            x = F.KWinners.apply(x, self.duty_cycle, self.k, self.boost_strength)
+            x = self.kwinner_function(x, self.duty_cycle, self.k,
+                                      self.boost_strength)
             self.update_duty_cycle(x)
         else:
-            x = F.KWinners.apply(x, self.duty_cycle, self.k_inference,
-                                 self.boost_strength)
+            x = self.kwinner_function(x, self.duty_cycle, self.k_inference,
+                                      self.boost_strength)
 
         return x
 
@@ -209,6 +246,15 @@ class KWinners(KWinnersBase):
         self.duty_cycle.mul_(period - batch_size)
         self.duty_cycle.add_(x.gt(0).sum(dim=0, dtype=torch.float))
         self.duty_cycle.div_(period)
+
+    def extra_repr(self):
+        s = super().extra_repr()
+        s += f", break_ties={self.break_ties}"
+        if self.relu:
+            s += ", relu=True"
+        if self.inplace:
+            s += ", inplace=True"
+        return s
 
 
 class KWinners2d(KWinnersBase):
@@ -249,6 +295,20 @@ class KWinners2d(KWinnersBase):
         at each location) or globally (across the whole input and across
         all channels).
     :type local: bool
+
+    :param break_ties:
+        Whether to use a strict k-winners. Using break_ties=False is faster but
+        may occasionally result in more than k active units.
+    :type break_ties: bool
+
+    :param relu:
+        This will simulate the effect of having a ReLU before the KWinners
+        without the extra computational overhead. Requires break_ties=False.
+    :type relu: bool
+
+    :param inplace:
+       Modify the input in-place. Only has an effect with break_ties=False.
+    :type inplace: bool
     """
 
     def __init__(
@@ -259,7 +319,10 @@ class KWinners2d(KWinnersBase):
         boost_strength=1.0,
         boost_strength_factor=0.9,
         duty_cycle_period=1000,
-        local=False
+        local=False,
+        break_ties=True,
+        relu=False,
+        inplace=False,
     ):
 
         super(KWinners2d, self).__init__(
@@ -270,14 +333,32 @@ class KWinners2d(KWinnersBase):
             duty_cycle_period=duty_cycle_period,
         )
 
+        if break_ties and relu:
+            raise ValueError("ReLU is not supported with break_ties=True. "
+                             "Use an explicit nn.ReLU instead.")
+
+        if break_ties and inplace:
+            warnings.warn("inplace=True has no effect with break_ties=True")
+
         self.channels = channels
         self.local = local
+        self.break_ties = break_ties
+        self.inplace = inplace
+        self.relu = relu
         if local:
             self.k = int(round(self.channels * self.percent_on))
             self.k_inference = int(round(self.channels * self.percent_on_inference))
-            self.kwinner_function = F.KWinners2dLocal.apply
+            if break_ties:
+                self.kwinner_function = F.KWinners2dLocal.apply
+            else:
+                self.kwinner_function = partial(F.kwinners_2d_local_no_tiebreak,
+                                                relu=relu, inplace=inplace)
         else:
-            self.kwinner_function = F.KWinners2dGlobal.apply
+            if break_ties:
+                self.kwinner_function = F.KWinners2dGlobal.apply
+            else:
+                self.kwinner_function = partial(F.kwinners_2d_global_no_tiebreak,
+                                                relu=relu, inplace=inplace)
 
         self.register_buffer("duty_cycle", torch.zeros((1, channels, 1, 1)))
 
@@ -314,6 +395,11 @@ class KWinners2d(KWinnersBase):
         return entropy * self.n / self.channels
 
     def extra_repr(self):
-        return "channels={}, local={}, {}".format(
-            self.channels, self.local, super(KWinners2d, self).extra_repr()
-        )
+        s = (f"channels={self.channels}, local={self.local}"
+             f", break_ties={self.break_ties}")
+        if self.relu:
+            s += ", relu=True"
+        if self.inplace:
+            s += ", inplace=True"
+        s += ", {}".format(super().extra_repr())
+        return s

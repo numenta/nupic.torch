@@ -129,9 +129,8 @@ class KWinners2dGlobal(torch.autograd.Function):
         """Use the boost strength to compute a boost factor for each unit
         represented in x. These factors are used to increase the impact of each
         unit to improve their chances of being chosen. This encourages
-        participation of more columns in the learning process. See.
-
-        :meth:`k_winners.forward` for more details.
+        participation of more columns in the learning process.
+        See :meth:`k_winners.forward` for more details.
 
         :param ctx:
           Place where we can store information we will need to compute the gradients
@@ -256,3 +255,174 @@ class KWinners2dLocal(torch.autograd.Function):
         grad_x = torch.zeros_like(grad_output, requires_grad=False)
         grad_x.scatter_(1, indices, grad_output.gather(1, indices))
         return grad_x, None, None, None, None
+
+
+def kwinners_no_tiebreak(x, duty_cycles, k, boost_strength, relu=False,
+                         inplace=False):
+    """
+    A simple K-winner take all function for creating layers with sparse output.
+    If there is a tie for the kth highest boosted value, there will be more than
+    k winners.
+
+    Use the boost strength to compute a boost factor for each unit represented
+    in x. These factors are used to increase the impact of each unit to improve
+    their chances of being chosen. This encourages participation of more columns
+    in the learning process. See :meth:`k_winners.forward` for more details.
+
+    :param x:
+      Current activity of each unit.
+
+    :param duty_cycles:
+      The averaged duty cycle of each unit.
+
+    :param k:
+      The activity of the top k units will be allowed to remain, the rest are
+      set to zero.
+
+    :param boost_strength:
+      A boost strength of 0.0 has no effect on x.
+
+    :param relu:
+      Whether to simulate the effect of applying ReLU before KWinners
+
+    :param inplace:
+      Whether to modify x in place
+
+    :return:
+      A tensor representing the activity of x after k-winner take all.
+    """
+    if boost_strength > 0.0:
+        target_density = float(k) / x.size(1)
+        boost_factors = torch.exp((target_density - duty_cycles)
+                                  * boost_strength)
+        boosted = x.detach() * boost_factors
+    else:
+        boosted = x.detach()
+
+    threshold = boosted.kthvalue(x.size(1) - k + 1, dim=1, keepdim=True)[0]
+    if relu:
+        threshold.clamp_(min=0)
+
+    off_mask = boosted < threshold
+    if inplace:
+        return x.masked_fill_(off_mask, 0)
+    else:
+        return x.masked_fill(off_mask, 0)
+
+
+def kwinners_2d_global_no_tiebreak(x, duty_cycles, k, boost_strength, relu=False,
+                                   inplace=False):
+    """
+    A K-winner take all function for Conv2d inputs (batch, channel, H, W) where
+    the k-winners are chosen globally across the whole input. If there is a tie
+    for the kth highest boosted value, there will be more than k winners.
+
+    Use the boost strength to compute a boost factor for each unit represented
+    in x. These factors are used to increase the impact of each unit to improve
+    their chances of being chosen. This encourages participation of more columns
+    in the learning process. See :meth:`k_winners.forward` for more details.
+
+    :param x:
+      Current activity of each unit.
+
+    :param duty_cycles:
+      The averaged duty cycle of each unit.
+
+    :param k:
+      The activity of the top k units will be allowed to remain, the rest are
+      set to zero.
+
+    :param boost_strength:
+      A boost strength of 0.0 has no effect on x.
+
+    :param relu:
+      Whether to simulate the effect of applying ReLU before KWinners
+
+    :param inplace:
+      Whether to modify x in place
+
+    :return:
+      A tensor representing the activity of x after k-winner take all.
+    """
+    batch_size, channels, h, w = x.shape
+    tot = channels * h * w
+    if boost_strength > 0.0:
+        target_density = float(k) / tot
+        boost_factors = torch.exp((target_density - duty_cycles)
+                                  * boost_strength)
+        boosted = x.detach() * boost_factors
+    else:
+        boosted = x.detach()
+
+    threshold = boosted.view(
+        batch_size, -1
+    ).kthvalue(
+        tot - k + 1, dim=1
+    )[0].view(
+        -1, 1, 1, 1
+    )
+    if relu:
+        threshold.clamp_(min=0)
+
+    off_mask = boosted < threshold
+    if inplace:
+        return x.masked_fill_(off_mask, 0)
+    else:
+        return x.masked_fill(off_mask, 0)
+
+
+def kwinners_2d_local_no_tiebreak(x, duty_cycles, k, boost_strength, relu=False,
+                                  inplace=False):
+    """
+    A K-winner take all function for Conv2d inputs (batch, channel, H, W) where
+    k-winners are chosen independently for each location. Local k-winners
+    selects the top k channels locally for each of the H X W locations. If there
+    is a tie for the kth highest boosted value, there will be more than k
+    winners.
+
+    Use the boost strength to compute a boost factor for each unit represented
+    in x. These factors are used to increase the impact of each unit to improve
+    their chances of being chosen. This encourages participation of more columns
+    in the learning process. See :meth:`k_winners.forward` for more details.
+
+    :param x:
+      Current activity of each unit.
+
+    :param duty_cycles:
+      The averaged duty cycle of each unit.
+
+    :param k:
+      The activity of the top k units across the channels will be allowed to
+      remain, the rest are set to zero.
+
+    :param boost_strength:
+      A boost strength of 0.0 has no effect on x.
+
+    :param relu:
+      Whether to simulate the effect of applying ReLU before KWinners
+
+    :param inplace:
+      Whether to modify x in place
+
+    :return:
+         A tensor representing the activity of x after k-winner take all.
+    """
+    batch_size, channels, h, w = x.shape
+    if boost_strength > 0.0:
+        # Apply boost strength to input computing density per channel
+        target_density = float(k) / channels
+        boost_factors = torch.exp((target_density - duty_cycles)
+                                  * boost_strength)
+        boosted = x.detach() * boost_factors
+    else:
+        boosted = x.detach()
+
+    threshold = boosted.kthvalue(channels - k + 1, dim=1, keepdim=True)[0]
+    if relu:
+        threshold.clamp_(min=0)
+
+    off_mask = boosted < threshold
+    if inplace:
+        return x.masked_fill_(off_mask, 0)
+    else:
+        return x.masked_fill(off_mask, 0)

@@ -285,68 +285,70 @@ class KWinnersTest(unittest.TestCase):
         x = self.x2
         n = 6
 
-        kw = KWinners(
-            n,
-            percent_on=0.333,
-            k_inference_factor=1.5,
-            boost_strength=1.0,
-            boost_strength_factor=0.5,
-            duty_cycle_period=1000,
-        )
+        for break_ties in [True, False]:
+            kw = KWinners(
+                n,
+                percent_on=0.333,
+                k_inference_factor=1.5,
+                boost_strength=1.0,
+                boost_strength_factor=0.5,
+                duty_cycle_period=1000,
+                break_ties=break_ties,
+            )
 
-        # Test with mod.training = False.
-        kw.train(mode=False)
+            # Test with mod.training = False.
+            kw.train(mode=False)
 
-        # Expect 3 winners per batch (1.5 * 33% of 6 is 1 / 2 of 6)
-        expected = torch.zeros_like(x)
-        expected[0, 0] = x[0, 0]
-        expected[0, 2] = x[0, 2]
-        expected[0, 3] = x[0, 3]
-        expected[1, 0] = x[1, 0]
-        expected[1, 2] = x[1, 2]
-        expected[1, 3] = x[1, 3]
-        result = kw(x)
+            # Expect 3 winners per batch (1.5 * 33% of 6 is 1 / 2 of 6)
+            expected = torch.zeros_like(x)
+            expected[0, 0] = x[0, 0]
+            expected[0, 2] = x[0, 2]
+            expected[0, 3] = x[0, 3]
+            expected[1, 0] = x[1, 0]
+            expected[1, 2] = x[1, 2]
+            expected[1, 3] = x[1, 3]
+            result = kw(x)
 
-        self.assertEqual(result.shape, expected.shape)
-        self.assertTrue(result.eq(expected).all())
+            self.assertEqual(result.shape, expected.shape)
+            self.assertTrue(result.eq(expected).all())
 
-        # Run forward pass again while still not in training mode.
-        # Should give the same result as the duty cycles are not updated.
-        result = kw(x)
+            # Run forward pass again while still not in training mode.
+            # Should give the same result as the duty cycles are not updated.
+            result = kw(x)
 
-        self.assertEqual(result.shape, expected.shape)
-        self.assertTrue(result.eq(expected).all())
+            self.assertEqual(result.shape, expected.shape)
+            self.assertTrue(result.eq(expected).all())
 
-        # Test with mod.training = True
-        kw.train(mode=True)
+            # Test with mod.training = True
+            kw.train(mode=True)
 
-        # Expect 2 winners per batch (33% of 6)
-        expected = torch.zeros_like(x)
-        expected[0, 0] = x[0, 0]
-        expected[0, 3] = x[0, 3]
-        expected[1, 2] = x[1, 2]
-        expected[1, 3] = x[1, 3]
-        result = kw(x)
+            # Expect 2 winners per batch (33% of 6)
+            expected = torch.zeros_like(x)
+            expected[0, 0] = x[0, 0]
+            expected[0, 3] = x[0, 3]
+            expected[1, 2] = x[1, 2]
+            expected[1, 3] = x[1, 3]
+            result = kw(x)
 
-        self.assertEqual(result.shape, expected.shape)
-        self.assertTrue(result.eq(expected).all())
+            self.assertEqual(result.shape, expected.shape)
+            self.assertTrue(result.eq(expected).all())
 
-        # Test values of updated duty cycle.
-        new_duty = torch.tensor([1.0, 0, 1.0, 2.0, 0, 0]) / 2.0
+            # Test values of updated duty cycle.
+            new_duty = torch.tensor([1.0, 0, 1.0, 2.0, 0, 0]) / 2.0
 
-        self.assertTrue(kw.duty_cycle.eq(new_duty).all())
+            self.assertTrue(kw.duty_cycle.eq(new_duty).all())
 
-        # Test forward with updated duty cycle.
-        result = kw(x)
+            # Test forward with updated duty cycle.
+            result = kw(x)
 
-        expected = torch.zeros_like(x)
-        expected[0, 1] = x[0, 1]
-        expected[0, 5] = x[0, 5]
-        expected[1, 1] = x[1, 1]
-        expected[1, 5] = x[1, 5]
+            expected = torch.zeros_like(x)
+            expected[0, 1] = x[0, 1]
+            expected[0, 5] = x[0, 5]
+            expected[1, 1] = x[1, 1]
+            expected[1, 5] = x[1, 5]
 
-        self.assertEqual(result.shape, expected.shape)
-        self.assertTrue(result.eq(expected).all())
+            self.assertEqual(result.shape, expected.shape)
+            self.assertTrue(result.eq(expected).all())
 
     def test_k_winners_module_two(self):
         """
@@ -357,47 +359,50 @@ class KWinnersTest(unittest.TestCase):
         x = self.x2
         n = 6
 
-        expected = torch.zeros_like(x)
-        expected[0, 0] = x[0, 0]
-        expected[0, 5] = x[0, 5]
-        expected[1, 2] = x[1, 2]
-        expected[1, 3] = x[1, 3]
+        for break_ties in [True, False]:
 
-        kw = KWinners(
-            n,
-            percent_on=0.333,
-            k_inference_factor=1.5,
-            boost_strength=1.0,
-            boost_strength_factor=0.5,
-            duty_cycle_period=1000,
-        )
+            expected = torch.zeros_like(x)
+            expected[0, 0] = x[0, 0]
+            expected[0, 5] = x[0, 5]
+            expected[1, 2] = x[1, 2]
+            expected[1, 3] = x[1, 3]
 
-        kw.train(mode=True)
-        result = kw(x)
-        result = kw(x)
-        result = kw(x)
-        result = kw(x)
-        result = kw(x)
-        result = kw(x)
-        result = kw(x)
+            kw = KWinners(
+                n,
+                percent_on=0.333,
+                k_inference_factor=1.5,
+                boost_strength=1.0,
+                boost_strength_factor=0.5,
+                duty_cycle_period=1000,
+                break_ties=break_ties,
+            )
 
-        self.assertTrue(result.eq(expected).all())
+            kw.train(mode=True)
+            result = kw(x)
+            result = kw(x)
+            result = kw(x)
+            result = kw(x)
+            result = kw(x)
+            result = kw(x)
+            result = kw(x)
 
-        # Test with mod.training = False.
-        kw.train(mode=False)
-        result = kw(x)
-        expected = torch.zeros_like(x)
-        expected[0, 0] = x[0, 0]
-        expected[0, 1] = x[0, 1]
-        expected[0, 5] = x[0, 5]
-        expected[1, 2] = x[1, 2]
-        expected[1, 3] = x[1, 3]
-        expected[1, 4] = x[1, 4]
-        self.assertTrue(result.eq(expected).all())
+            self.assertTrue(result.eq(expected).all())
 
-    def test_tie_breaking(self):
+            # Test with mod.training = False.
+            kw.train(mode=False)
+            result = kw(x)
+            expected = torch.zeros_like(x)
+            expected[0, 0] = x[0, 0]
+            expected[0, 1] = x[0, 1]
+            expected[0, 5] = x[0, 5]
+            expected[1, 2] = x[1, 2]
+            expected[1, 3] = x[1, 3]
+            expected[1, 4] = x[1, 4]
+            self.assertTrue(result.eq(expected).all())
+
+    def test_tie_breaking_on(self):
         """
-        Test k-winners with tie-breaking
+        Test k-winners with ties. Tie-breaking enabled.
         """
         x = self.x2
         # Force tie breaking
@@ -425,6 +430,59 @@ class KWinnersTest(unittest.TestCase):
 
         result = F.KWinners.forward(ctx, x, self.duty_cycle2, k=3, boost_strength=1.0)
         self.assertTrue(result.eq(expected1).all() or result.eq(expected2).all())
+
+    def test_tie_breaking_off(self):
+        """
+        Test k-winners with ties. Tie-breaking disabled.
+        """
+        x = self.x2
+        # Force tie breaking
+        x[0, 5] = x[0, 1]
+
+        expected = torch.zeros_like(x)
+        expected[0, 0] = x[0, 0]
+        expected[0, 1] = x[0, 1]
+        expected[0, 3] = x[0, 3]
+        expected[0, 5] = x[0, 5]
+        expected[1, 1] = x[1, 1]
+        expected[1, 3] = x[1, 3]
+        expected[1, 5] = x[1, 5]
+
+        n = 6
+        kw = KWinners(n,
+                      percent_on=0.5,
+                      k_inference_factor=1.0,
+                      boost_strength=1.0,
+                      boost_strength_factor=0.5,
+                      duty_cycle_period=1000,
+                      break_ties=False)
+        kw.duty_cycle[:] = self.duty_cycle2
+
+        result = kw(x)
+        self.assertTrue(result.eq(expected).all())
+
+    def test_kwinners_relu(self):
+        n = 4
+        x = torch.tensor([
+            [-5, -2, -1, 2],
+            [-2, -1, 1, 2],
+            [-4, -3, -2, -1]
+        ], dtype=torch.float)
+        expected = torch.tensor([
+            [0, 0, 0, 2],
+            [0, 0, 1, 2],
+            [0, 0, 0, 0]
+        ], dtype=torch.float)
+
+        kw = KWinners(n,
+                      percent_on=0.5,
+                      k_inference_factor=1.0,
+                      boost_strength=1.0,
+                      break_ties=False,
+                      relu=True)
+
+        result = kw(x)
+        self.assertTrue(result.eq(expected).all())
 
 
 if __name__ == "__main__":
