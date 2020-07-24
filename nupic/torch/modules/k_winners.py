@@ -19,8 +19,6 @@
 # http://numenta.org/licenses/
 # ----------------------------------------------------------------------
 import abc
-import warnings
-from functools import partial
 
 import numpy as np
 import torch
@@ -176,12 +174,11 @@ class KWinners(KWinnersBase):
     :type break_ties: bool
 
     :param relu:
-        This will simulate the effect of having a ReLU before the KWinners
-        without the extra computational overhead. Requires break_ties=False.
+        This will simulate the effect of having a ReLU before the KWinners.
     :type relu: bool
 
     :param inplace:
-       Modify the input in-place. Only has an effect with break_ties=False.
+       Modify the input in-place.
     :type inplace: bool
     """
 
@@ -206,21 +203,9 @@ class KWinners(KWinnersBase):
             duty_cycle_period=duty_cycle_period,
         )
 
-        if break_ties and relu:
-            raise ValueError("ReLU is not supported with break_ties=True. "
-                             "Use an explicit nn.ReLU instead.")
-
-        if break_ties and inplace:
-            warnings.warn("inplace=True has no effect with break_ties=True")
-
         self.break_ties = break_ties
         self.inplace = inplace
         self.relu = relu
-        if break_ties:
-            self.kwinner_function = F.KWinners.apply
-        else:
-            self.kwinner_function = partial(F.kwinners_no_tiebreak,
-                                            relu=relu, inplace=inplace)
 
         self.n = n
         self.k = int(round(n * percent_on))
@@ -230,12 +215,13 @@ class KWinners(KWinnersBase):
     def forward(self, x):
 
         if self.training:
-            x = self.kwinner_function(x, self.duty_cycle, self.k,
-                                      self.boost_strength)
+            x = F.kwinners(x, self.duty_cycle, self.k, self.boost_strength,
+                           self.break_ties, self.relu, self.inplace)
             self.update_duty_cycle(x)
         else:
-            x = self.kwinner_function(x, self.duty_cycle, self.k_inference,
-                                      self.boost_strength)
+            x = F.kwinners(x, self.duty_cycle, self.k_inference,
+                           self.boost_strength, self.break_ties, self.relu,
+                           self.inplace)
 
         return x
 
@@ -302,12 +288,11 @@ class KWinners2d(KWinnersBase):
     :type break_ties: bool
 
     :param relu:
-        This will simulate the effect of having a ReLU before the KWinners
-        without the extra computational overhead. Requires break_ties=False.
+        This will simulate the effect of having a ReLU before the KWinners.
     :type relu: bool
 
     :param inplace:
-       Modify the input in-place. Only has an effect with break_ties=False.
+       Modify the input in-place.
     :type inplace: bool
     """
 
@@ -333,13 +318,6 @@ class KWinners2d(KWinnersBase):
             duty_cycle_period=duty_cycle_period,
         )
 
-        if break_ties and relu:
-            raise ValueError("ReLU is not supported with break_ties=True. "
-                             "Use an explicit nn.ReLU instead.")
-
-        if break_ties and inplace:
-            warnings.warn("inplace=True has no effect with break_ties=True")
-
         self.channels = channels
         self.local = local
         self.break_ties = break_ties
@@ -348,17 +326,6 @@ class KWinners2d(KWinnersBase):
         if local:
             self.k = int(round(self.channels * self.percent_on))
             self.k_inference = int(round(self.channels * self.percent_on_inference))
-            if break_ties:
-                self.kwinner_function = F.KWinners2dLocal.apply
-            else:
-                self.kwinner_function = partial(F.kwinners_2d_local_no_tiebreak,
-                                                relu=relu, inplace=inplace)
-        else:
-            if break_ties:
-                self.kwinner_function = F.KWinners2dGlobal.apply
-            else:
-                self.kwinner_function = partial(F.kwinners_2d_global_no_tiebreak,
-                                                relu=relu, inplace=inplace)
 
         self.register_buffer("duty_cycle", torch.zeros((1, channels, 1, 1)))
 
@@ -371,11 +338,14 @@ class KWinners2d(KWinnersBase):
                 self.k_inference = int(round(self.n * self.percent_on_inference))
 
         if self.training:
-            x = self.kwinner_function(x, self.duty_cycle, self.k, self.boost_strength)
+            x = F.kwinners2d(x, self.duty_cycle, self.k, self.boost_strength,
+                             self.local, self.break_ties, self.relu,
+                             self.inplace)
             self.update_duty_cycle(x)
         else:
-            x = self.kwinner_function(x, self.duty_cycle, self.k_inference,
-                                      self.boost_strength)
+            x = F.kwinners2d(x, self.duty_cycle, self.k_inference,
+                             self.boost_strength, self.local, self.break_ties,
+                             self.relu, self.inplace)
 
         return x
 

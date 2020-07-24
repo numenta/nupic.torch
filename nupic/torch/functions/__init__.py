@@ -18,11 +18,4 @@
 #
 # http://numenta.org/licenses/
 # ----------------------------------------------------------------------
-from .k_winners import (
-    KWinners2dGlobal,
-    KWinners2dLocal,
-    KWinners,
-    kwinners_2d_global_no_tiebreak,
-    kwinners_2d_local_no_tiebreak,
-    kwinners_no_tiebreak,
-)
+from .k_winners import *

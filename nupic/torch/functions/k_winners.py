@@ -21,239 +21,50 @@
 import torch
 
 
-class KWinners(torch.autograd.Function):
-    """A simple K-winner take all autograd function for creating layers with
-    sparse output.
-
-    .. note::
-        Code adapted from this excellent tutorial:
-        https://github.com/jcjohnson/pytorch-examples
-    """
-
-    @staticmethod
-    def forward(ctx, x, duty_cycles, k, boost_strength):
-        r"""Use the boost strength to compute a boost factor for each unit
-        represented in x. These factors are used to increase the impact of each
-        unit to improve their chances of being chosen. This encourages
-        participation of more columns in the learning process.
-
-        The boosting function is a curve defined as:
-
-        .. math::
-            boostFactors = \exp(-boostStrength \times (dutyCycles - targetDensity))
-
-        Intuitively this means that units that have been active (i.e. in the top-k)
-        at the target activation level have a boost factor of 1, meaning their
-        activity is not boosted. Columns whose duty cycle drops too much below that
-        of their neighbors are boosted depending on how infrequently they have been
-        active. Unit that has been active more than the target activation level
-        have a boost factor below 1, meaning their activity is suppressed and
-        they are less likely to be in the top-k.
-
-        Note that we do not transmit the boosted values. We only use boosting to
-        determine the winning units.
-
-        The target activation density for each unit is k / number of units. The
-        boostFactor depends on the duty_cycles via an exponential function::
-
-                boostFactor
-                    ^
-                    |
-                    |\
-                    | \
-              1  _  |  \
-                    |    _
-                    |      _ _
-                    |          _ _ _ _
-                    +--------------------> duty_cycles
-                       |
-                  target_density
-
-        :param ctx:
-          Place where we can store information we will need to compute the gradients
-          for the backward pass.
-
-        :param x:
-          Current activity of each unit, optionally batched along the 0th dimension.
-
-        :param duty_cycles:
-          The averaged duty cycle of each unit.
-
-        :param k:
-          The activity of the top k units will be allowed to remain, the rest are
-          set to zero.
-
-        :param boost_strength:
-          A boost strength of 0.0 has no effect on x.
-
-        :return:
-          A tensor representing the activity of x after k-winner take all.
-        """
-        boosted = boost_activations(x, duty_cycles, boost_strength)
-
-        # Take the boosted version of the input x, find the top k winners.
-        # Compute an output that contains the values of x corresponding to the top k
-        # boosted values
-        topk, indices = boosted.topk(k, sorted=False)
-        mask = torch.zeros_like(x).scatter(-1, indices, 1)
-        res = mask * x
-        ctx.save_for_backward(mask)
-        return res
-
-    @staticmethod
-    def backward(ctx, grad_output):
-        """In the backward pass, we set the gradient to 1 for the winning
-        units, and 0 for the others.
-        """
-        mask, = ctx.saved_tensors
-        grad_x = grad_output * mask
-        grad_x.requires_grad_(True)
-        return grad_x, None, None, None
-
-
-class KWinners2dGlobal(torch.autograd.Function):
-    """
-    A K-winner take all autograd function for CNN 2D inputs (batch, Channel, H, W)
-    where the k-winners are chosen globally across the whole input
-
-    .. seealso::      Function :class:`KWinners`
-    """
-
-    @staticmethod
-    def forward(ctx, x, duty_cycles, k, boost_strength):
-        """Use the boost strength to compute a boost factor for each unit
-        represented in x. These factors are used to increase the impact of each
-        unit to improve their chances of being chosen. This encourages
-        participation of more columns in the learning process.
-        See :meth:`k_winners.forward` for more details.
-
-        :param ctx:
-          Place where we can store information we will need to compute the gradients
-          for the backward pass.
-
-        :param x:
-          Current activity of each unit.
-
-        :param duty_cycles:
-          The averaged duty cycle of each unit.
-
-        :param k:
-          The activity of the top k units will be allowed to remain, the rest are
-          set to zero.
-
-        :param boost_strength:
-          A boost strength of 0.0 has no effect on x.
-
-        :return:
-          A tensor representing the activity of x after k-winner take all.
-        """
-
-        # Take the boosted version of the input x, find the top k winners.
-        # Compute an output that only contains the values of x corresponding to
-        # the top k boosted values. The rest of the elements in the output
-        # should be 0.
-        batch_size = x.shape[0]
-        boosted = boost_activations(x, duty_cycles, boost_strength)
-        boosted = boosted.reshape((batch_size, -1))
-        xr = x.reshape((batch_size, -1))
-        res = torch.zeros_like(boosted)
-        topk, indices = boosted.topk(k, dim=1, sorted=False)
-        res.scatter_(1, indices, xr.gather(1, indices))
-        res = res.reshape(x.shape)
-
-        ctx.save_for_backward(indices)
-        return res
-
-    @staticmethod
-    def backward(ctx, grad_output):
-        """In the backward pass, we set the gradient to 1 for the winning
-        units, and 0 for the others.
-        """
-        batch_size = grad_output.shape[0]
-        indices, = ctx.saved_tensors
-
-        g = grad_output.reshape((batch_size, -1))
-        grad_x = torch.zeros_like(g, requires_grad=False)
-        grad_x.scatter_(1, indices, g.gather(1, indices))
-        grad_x = grad_x.reshape(grad_output.shape)
-
-        return grad_x, None, None, None
-
-
-class KWinners2dLocal(torch.autograd.Function):
-    """
-    A K-winner take all autograd function for CNN 2D inputs (batch, Channel, H,
-    W) where k-winners are chosen independently for each location. Local k-winners
-    selects the top k channels locally for each of the H X W locations.
-
-    .. seealso::      Function :class:`KWinners2dGlobal`
-    """
-
-    @staticmethod
-    def forward(ctx, x, duty_cycles, k, boost_strength):
-        """
-          Take the boosted version of the input x, find the top k winners
-          independently for each location. The output will only contain the
-          values of x corresponding to the top k boosted values across all the
-          channels at each location. The rest of the elements in the output
-          should be 0.
-
-        :param ctx:
-          Place where we can store information we will need to compute the
-          gradients for the backward pass.
-
-        :param x:
-          Current activity of each unit.
-
-        :param duty_cycles:
-          The averaged duty cycle of each unit.
-
-        :param k:
-          The activity of the top k units across the channels will be allowed to
-          remain, the rest are set to zero.
-
-        :param boost_strength:
-          A boost strength of 0.0 has no effect on x.
-
-        :return:
-             A tensor representing the activity of x after k-winner take all.
-        """
-        boosted = boost_activations(x, duty_cycles, boost_strength)
-
-        # Select top K channels from the boosted values
-        topk, indices = boosted.topk(k=k, dim=1)
-        res = torch.zeros_like(x)
-        res.scatter_(1, indices, x.gather(1, indices))
-
-        ctx.save_for_backward(indices)
-        return res
-
-    @staticmethod
-    def backward(ctx, grad_output):
-        """
-        In the backward pass, we set the gradient to 1 for the winning units,
-        and 0 for the others.
-        """
-        indices, = ctx.saved_tensors
-        grad_x = torch.zeros_like(grad_output, requires_grad=False)
-        grad_x.scatter_(1, indices, grad_output.gather(1, indices))
-        return grad_x, None, None, None, None
-
-
-def kwinners_no_tiebreak(x, duty_cycles, k, boost_strength, relu=False,
-                         inplace=False):
+def kwinners(x, duty_cycles, k, boost_strength, break_ties=True, relu=False,
+             inplace=False):
     """
     A simple K-winner take all function for creating layers with sparse output.
-    If there is a tie for the kth highest boosted value, there will be more than
-    k winners.
 
     Use the boost strength to compute a boost factor for each unit represented
     in x. These factors are used to increase the impact of each unit to improve
     their chances of being chosen. This encourages participation of more columns
-    in the learning process. See :meth:`k_winners.forward` for more details.
+    in the learning process.
+
+    The boosting function is a curve defined as:
+
+    .. math::
+        boostFactors = \\exp(-boostStrength \\times (dutyCycles - targetDensity))
+
+    Intuitively this means that units that have been active (i.e. in the top-k)
+    at the target activation level have a boost factor of 1, meaning their
+    activity is not boosted. Columns whose duty cycle drops too much below that
+    of their neighbors are boosted depending on how infrequently they have been
+    active. Unit that has been active more than the target activation level
+    have a boost factor below 1, meaning their activity is suppressed and
+    they are less likely to be in the top-k.
+
+    Note that we do not transmit the boosted values. We only use boosting to
+    determine the winning units.
+
+    The target activation density for each unit is k / number of units. The
+    boostFactor depends on the duty_cycles via an exponential function::
+
+            boostFactor
+                ^
+                |
+                |\
+                | \
+          1  _  |  \
+                |    _
+                |      _ _
+                |          _ _ _ _
+                +--------------------> duty_cycles
+                   |
+              target_density
 
     :param x:
-      Current activity of each unit.
+      Current activity of each unit, optionally batched along the 0th dimension.
 
     :param duty_cycles:
       The averaged duty cycle of each unit.
@@ -265,58 +76,9 @@ def kwinners_no_tiebreak(x, duty_cycles, k, boost_strength, relu=False,
     :param boost_strength:
       A boost strength of 0.0 has no effect on x.
 
-    :param relu:
-      Whether to simulate the effect of applying ReLU before KWinners
-
-    :param inplace:
-      Whether to modify x in place
-
-    :return:
-      A tensor representing the activity of x after k-winner take all.
-    """
-    if boost_strength > 0.0:
-        target_density = float(k) / x.size(1)
-        boost_factors = torch.exp((target_density - duty_cycles)
-                                  * boost_strength)
-        boosted = x.detach() * boost_factors
-    else:
-        boosted = x.detach()
-
-    threshold = boosted.kthvalue(x.size(1) - k + 1, dim=1, keepdim=True)[0]
-    if relu:
-        threshold.clamp_(min=0)
-
-    off_mask = boosted < threshold
-    if inplace:
-        return x.masked_fill_(off_mask, 0)
-    else:
-        return x.masked_fill(off_mask, 0)
-
-
-def kwinners_2d_global_no_tiebreak(x, duty_cycles, k, boost_strength, relu=False,
-                                   inplace=False):
-    """
-    A K-winner take all function for Conv2d inputs (batch, channel, H, W) where
-    the k-winners are chosen globally across the whole input. If there is a tie
-    for the kth highest boosted value, there will be more than k winners.
-
-    Use the boost strength to compute a boost factor for each unit represented
-    in x. These factors are used to increase the impact of each unit to improve
-    their chances of being chosen. This encourages participation of more columns
-    in the learning process. See :meth:`k_winners.forward` for more details.
-
-    :param x:
-      Current activity of each unit.
-
-    :param duty_cycles:
-      The averaged duty cycle of each unit.
-
-    :param k:
-      The activity of the top k units will be allowed to remain, the rest are
-      set to zero.
-
-    :param boost_strength:
-      A boost strength of 0.0 has no effect on x.
+    :param break_ties:
+      Whether to use a strict k-winners. Using break_ties=False is faster but
+      may occasionally result in more than k active units.
 
     :param relu:
       Whether to simulate the effect of applying ReLU before KWinners
@@ -327,46 +89,46 @@ def kwinners_2d_global_no_tiebreak(x, duty_cycles, k, boost_strength, relu=False
     :return:
       A tensor representing the activity of x after k-winner take all.
     """
-    batch_size, channels, h, w = x.shape
-    tot = channels * h * w
-    if boost_strength > 0.0:
-        target_density = float(k) / tot
-        boost_factors = torch.exp((target_density - duty_cycles)
-                                  * boost_strength)
-        boosted = x.detach() * boost_factors
+    if k == 0:
+        return torch.zeros_like(x)
+
+    boosted = boost_activations(x, duty_cycles, boost_strength)
+
+    if break_ties:
+        indices = boosted.topk(k=k, dim=1, sorted=False)[1]
+        off_mask = torch.ones_like(boosted, dtype=torch.bool)
+        off_mask.scatter_(1, indices, False)
+
+        if relu:
+            off_mask |= (boosted <= 0)
     else:
-        boosted = x.detach()
+        threshold = boosted.kthvalue(x.shape[1] - k + 1, dim=1,
+                                     keepdim=True)[0]
 
-    threshold = boosted.view(
-        batch_size, -1
-    ).kthvalue(
-        tot - k + 1, dim=1
-    )[0].view(
-        -1, 1, 1, 1
-    )
-    if relu:
-        threshold.clamp_(min=0)
+        if relu:
+            threshold.clamp_(min=0)
+        off_mask = boosted < threshold
 
-    off_mask = boosted < threshold
     if inplace:
         return x.masked_fill_(off_mask, 0)
     else:
         return x.masked_fill(off_mask, 0)
 
 
-def kwinners_2d_local_no_tiebreak(x, duty_cycles, k, boost_strength, relu=False,
-                                  inplace=False):
+def kwinners2d(x, duty_cycles, k, boost_strength, local=True, break_ties=True,
+               relu=False, inplace=False):
     """
-    A K-winner take all function for Conv2d inputs (batch, channel, H, W) where
-    k-winners are chosen independently for each location. Local k-winners
-    selects the top k channels locally for each of the H X W locations. If there
-    is a tie for the kth highest boosted value, there will be more than k
-    winners.
+    A K-winner take all function for creating Conv2d layers with sparse output.
 
-    Use the boost strength to compute a boost factor for each unit represented
-    in x. These factors are used to increase the impact of each unit to improve
-    their chances of being chosen. This encourages participation of more columns
-    in the learning process. See :meth:`k_winners.forward` for more details.
+    If local=True, k-winners are chosen independently for each location. For
+    Conv2d inputs (batch, channel, H, W), the top k channels are selected
+    locally for each of the H X W locations. If there is a tie for the kth
+    highest boosted value, there will be more than k winners.
+
+    The boost strength is used to compute a boost factor for each unit
+    represented in x. These factors are used to increase the impact of each unit
+    to improve their chances of being chosen. This encourages participation of
+    more columns in the learning process. See :meth:`kwinners` for more details.
 
     :param x:
       Current activity of each unit.
@@ -381,8 +143,17 @@ def kwinners_2d_local_no_tiebreak(x, duty_cycles, k, boost_strength, relu=False,
     :param boost_strength:
       A boost strength of 0.0 has no effect on x.
 
+    :param local:
+      Whether or not to choose the k-winners locally (across the channels at
+      each location) or globally (across the whole input and across all
+      channels).
+
+    :param break_ties:
+      Whether to use a strict k-winners. Using break_ties=False is faster but
+      may occasionally result in more than k active units.
+
     :param relu:
-      Whether to simulate the effect of applying ReLU before KWinners
+      Whether to simulate the effect of applying ReLU before KWinners.
 
     :param inplace:
       Whether to modify x in place
@@ -390,21 +161,38 @@ def kwinners_2d_local_no_tiebreak(x, duty_cycles, k, boost_strength, relu=False,
     :return:
          A tensor representing the activity of x after k-winner take all.
     """
-    batch_size, channels, h, w = x.shape
-    if boost_strength > 0.0:
-        # Apply boost strength to input computing density per channel
-        target_density = float(k) / channels
-        boost_factors = torch.exp((target_density - duty_cycles)
-                                  * boost_strength)
-        boosted = x.detach() * boost_factors
+    if k == 0:
+        return torch.zeros_like(x)
+
+    boosted = boost_activations(x, duty_cycles, boost_strength)
+
+    if break_ties:
+        if local:
+            indices = boosted.topk(k=k, dim=1, sorted=False)[1]
+            off_mask = torch.ones_like(boosted, dtype=torch.bool)
+            off_mask.scatter_(1, indices, False)
+        else:
+            shape2 = (x.shape[0], x.shape[1] * x.shape[2] * x.shape[3])
+            indices = boosted.view(shape2).topk(k, dim=1, sorted=False)[1]
+            off_mask = torch.ones(shape2, dtype=torch.bool, device=x.device)
+            off_mask.scatter_(1, indices, False)
+            off_mask = off_mask.view(x.shape)
+
+        if relu:
+            off_mask |= (boosted <= 0)
     else:
-        boosted = x.detach()
+        if local:
+            threshold = boosted.kthvalue(x.shape[1] - k + 1, dim=1,
+                                         keepdim=True)[0]
+        else:
+            threshold = boosted.view(x.shape[0], -1).kthvalue(
+                x.shape[1] * x.shape[2] * x.shape[3] - k + 1, dim=1)[0]
+            threshold = threshold.view(x.shape[0], 1, 1, 1)
 
-    threshold = boosted.kthvalue(channels - k + 1, dim=1, keepdim=True)[0]
-    if relu:
-        threshold.clamp_(min=0)
+        if relu:
+            threshold.clamp_(min=0)
+        off_mask = boosted < threshold
 
-    off_mask = boosted < threshold
     if inplace:
         return x.masked_fill_(off_mask, 0)
     else:
@@ -419,12 +207,16 @@ def boost_activations(x, duty_cycles, boost_strength):
       x * torch.exp(-boost_strength * duty_cycles)
     which is equal to the former value times a positive constant, so it will
     have the same ranked order.
+
     :param x:
       Current activity of each unit.
+
     :param duty_cycles:
       The averaged duty cycle of each unit.
+
     :param boost_strength:
       A boost strength of 0.0 has no effect on x.
+
     :return:
          A tensor representing the boosted activity
     """
@@ -432,3 +224,9 @@ def boost_activations(x, duty_cycles, boost_strength):
         return x.detach() * torch.exp(-boost_strength * duty_cycles)
     else:
         return x.detach()
+
+
+__all__ = [
+    "kwinners",
+    "kwinners2d",
+]
