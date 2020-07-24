@@ -90,17 +90,26 @@ class KWinnersBase(nn.Module, metaclass=abc.ABCMeta):
         self.k = 0
         self.k_inference = 0
 
-        # Boosting related parameters
+        # Boosting related parameters. Put boost_strength in a buffer so that it
+        # is saved in the state_dict. Keep a copy that remains a Python float so
+        # that its value can be accessed in 'if' statements without blocking to
+        # fetch from GPU memory.
         self.register_buffer("boost_strength", torch.tensor(boost_strength,
                                                             dtype=torch.float))
+        self._cached_boost_strength = boost_strength
+
         self.boost_strength_factor = boost_strength_factor
         self.duty_cycle_period = duty_cycle_period
+
+    def _load_from_state_dict(self, *args, **kwargs):
+        super()._load_from_state_dict(*args, **kwargs)
+        self._cached_boost_strength = self.boost_strength.item()
 
     def extra_repr(self):
         return (
             "n={0}, percent_on={1}, boost_strength={2}, boost_strength_factor={3}, "
             "k_inference_factor={4}, duty_cycle_period={5}".format(
-                self.n, self.percent_on, self.boost_strength,
+                self.n, self.percent_on, self._cached_boost_strength,
                 self.boost_strength_factor, self.k_inference_factor,
                 self.duty_cycle_period
             )
@@ -124,7 +133,8 @@ class KWinnersBase(nn.Module, metaclass=abc.ABCMeta):
         """Update boost strength by multiplying by the boost strength factor.
         This is typically done during training at the beginning of each epoch.
         """
-        self.boost_strength *= self.boost_strength_factor
+        self._cached_boost_strength *= self.boost_strength_factor
+        self.boost_strength.fill_(self._cached_boost_strength)
 
     def entropy(self):
         """Returns the current total entropy of this layer."""
@@ -194,11 +204,12 @@ class KWinners(KWinnersBase):
     def forward(self, x):
 
         if self.training:
-            x = F.KWinners.apply(x, self.duty_cycle, self.k, self.boost_strength)
+            x = F.KWinners.apply(x, self.duty_cycle, self.k,
+                                 self._cached_boost_strength)
             self.update_duty_cycle(x)
         else:
             x = F.KWinners.apply(x, self.duty_cycle, self.k_inference,
-                                 self.boost_strength)
+                                 self._cached_boost_strength)
 
         return x
 
@@ -290,11 +301,12 @@ class KWinners2d(KWinnersBase):
                 self.k_inference = int(round(self.n * self.percent_on_inference))
 
         if self.training:
-            x = self.kwinner_function(x, self.duty_cycle, self.k, self.boost_strength)
+            x = self.kwinner_function(x, self.duty_cycle, self.k,
+                                      self._cached_boost_strength)
             self.update_duty_cycle(x)
         else:
             x = self.kwinner_function(x, self.duty_cycle, self.k_inference,
-                                      self.boost_strength)
+                                      self._cached_boost_strength)
 
         return x
 
