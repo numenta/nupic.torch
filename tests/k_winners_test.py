@@ -421,7 +421,8 @@ class KWinnersTest(unittest.TestCase):
         expected2[1, 3] = x[1, 3]
         expected2[1, 5] = x[1, 5]
 
-        result = F.kwinners(x, self.duty_cycle2, k=3, boost_strength=1.0)
+        result = F.kwinners(x, self.duty_cycle2, k=3, boost_strength=1.0,
+                            break_ties=True)
         self.assertTrue(result.eq(expected1).all() or result.eq(expected2).all())
 
     def test_tie_breaking_off(self):

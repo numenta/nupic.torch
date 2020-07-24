@@ -21,7 +21,7 @@
 import torch
 
 
-def kwinners(x, duty_cycles, k, boost_strength, break_ties=True, relu=False,
+def kwinners(x, duty_cycles, k, boost_strength, break_ties=False, relu=False,
              inplace=False):
     """
     A simple K-winner take all function for creating layers with sparse output.
@@ -115,7 +115,7 @@ def kwinners(x, duty_cycles, k, boost_strength, break_ties=True, relu=False,
         return x.masked_fill(off_mask, 0)
 
 
-def kwinners2d(x, duty_cycles, k, boost_strength, local=True, break_ties=True,
+def kwinners2d(x, duty_cycles, k, boost_strength, local=True, break_ties=False,
                relu=False, inplace=False):
     """
     A K-winner take all function for creating Conv2d layers with sparse output.

@@ -200,7 +200,7 @@ class KWinners(KWinnersBase):
         boost_strength=1.0,
         boost_strength_factor=0.9,
         duty_cycle_period=1000,
-        break_ties=True,
+        break_ties=False,
         relu=False,
         inplace=False,
     ):
@@ -315,7 +315,7 @@ class KWinners2d(KWinnersBase):
         boost_strength_factor=0.9,
         duty_cycle_period=1000,
         local=False,
-        break_ties=True,
+        break_ties=False,
         relu=False,
         inplace=False,
     ):
