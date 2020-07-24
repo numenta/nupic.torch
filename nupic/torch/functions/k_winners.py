@@ -201,7 +201,7 @@ def kwinners2d(x, duty_cycles, k, boost_strength, local=True, break_ties=True,
 
 def boost_activations(x, duty_cycles, boost_strength):
     """
-    Boosting normally would compute
+    Boosting as documented in :meth:`kwinners` would compute
       x * torch.exp((target_density - duty_cycles) * boost_strength)
     but instead we compute
       x * torch.exp(-boost_strength * duty_cycles)
