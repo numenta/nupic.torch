@@ -89,12 +89,7 @@ class KWinners(torch.autograd.Function):
         :return:
           A tensor representing the activity of x after k-winner take all.
         """
-        if boost_strength > 0.0:
-            target_density = float(k) / x.size(1)
-            boost_factors = torch.exp((target_density - duty_cycles) * boost_strength)
-            boosted = x.detach() * boost_factors
-        else:
-            boosted = x.detach()
+        boosted = boost_activations(x, duty_cycles, boost_strength)
 
         # Take the boosted version of the input x, find the top k winners.
         # Compute an output that contains the values of x corresponding to the top k
@@ -152,18 +147,13 @@ class KWinners2dGlobal(torch.autograd.Function):
         :return:
           A tensor representing the activity of x after k-winner take all.
         """
-        batch_size = x.shape[0]
-        if boost_strength > 0.0:
-            target_density = float(k) / (x.shape[1] * x.shape[2] * x.shape[3])
-            boost_factors = torch.exp((target_density - duty_cycles) * boost_strength)
-            boosted = x.detach() * boost_factors
-        else:
-            boosted = x.detach()
 
         # Take the boosted version of the input x, find the top k winners.
         # Compute an output that only contains the values of x corresponding to
         # the top k boosted values. The rest of the elements in the output
         # should be 0.
+        batch_size = x.shape[0]
+        boosted = boost_activations(x, duty_cycles, boost_strength)
         boosted = boosted.reshape((batch_size, -1))
         xr = x.reshape((batch_size, -1))
         res = torch.zeros_like(boosted)
@@ -228,14 +218,7 @@ class KWinners2dLocal(torch.autograd.Function):
         :return:
              A tensor representing the activity of x after k-winner take all.
         """
-        batch_size, channels, h, w = x.shape
-        if boost_strength > 0.0:
-            # Apply boost strength to input computing density per channel
-            target_density = float(k) / channels
-            boost_factors = torch.exp((target_density - duty_cycles) * boost_strength)
-            boosted = x.detach() * boost_factors
-        else:
-            boosted = x.detach()
+        boosted = boost_activations(x, duty_cycles, boost_strength)
 
         # Select top K channels from the boosted values
         topk, indices = boosted.topk(k=k, dim=1)
@@ -426,3 +409,26 @@ def kwinners_2d_local_no_tiebreak(x, duty_cycles, k, boost_strength, relu=False,
         return x.masked_fill_(off_mask, 0)
     else:
         return x.masked_fill(off_mask, 0)
+
+
+def boost_activations(x, duty_cycles, boost_strength):
+    """
+    Boosting normally would compute
+      x * torch.exp((target_density - duty_cycles) * boost_strength)
+    but instead we compute
+      x * torch.exp(-boost_strength * duty_cycles)
+    which is equal to the former value times a positive constant, so it will
+    have the same ranked order.
+    :param x:
+      Current activity of each unit.
+    :param duty_cycles:
+      The averaged duty cycle of each unit.
+    :param boost_strength:
+      A boost strength of 0.0 has no effect on x.
+    :return:
+         A tensor representing the boosted activity
+    """
+    if boost_strength > 0.0:
+        return x.detach() * torch.exp(-boost_strength * duty_cycles)
+    else:
+        return x.detach()
