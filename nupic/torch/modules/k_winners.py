@@ -177,6 +177,19 @@ class KWinners(KWinnersBase):
     :param duty_cycle_period:
       The period used to calculate duty cycles
     :type duty_cycle_period: int
+
+    :param break_ties:
+        Whether to use a strict k-winners. Using break_ties=False is faster but
+        may occasionally result in more than k active units.
+    :type break_ties: bool
+
+    :param relu:
+        This will simulate the effect of having a ReLU before the KWinners.
+    :type relu: bool
+
+    :param inplace:
+       Modify the input in-place.
+    :type inplace: bool
     """
 
     def __init__(
@@ -187,6 +200,9 @@ class KWinners(KWinnersBase):
         boost_strength=1.0,
         boost_strength_factor=0.9,
         duty_cycle_period=1000,
+        break_ties=False,
+        relu=False,
+        inplace=False,
     ):
 
         super(KWinners, self).__init__(
@@ -196,6 +212,11 @@ class KWinners(KWinnersBase):
             boost_strength_factor=boost_strength_factor,
             duty_cycle_period=duty_cycle_period,
         )
+
+        self.break_ties = break_ties
+        self.inplace = inplace
+        self.relu = relu
+
         self.n = n
         self.k = int(round(n * percent_on))
         self.k_inference = int(self.k * self.k_inference_factor)
@@ -204,12 +225,13 @@ class KWinners(KWinnersBase):
     def forward(self, x):
 
         if self.training:
-            x = F.KWinners.apply(x, self.duty_cycle, self.k,
-                                 self._cached_boost_strength)
+            x = F.kwinners(x, self.duty_cycle, self.k, self._cached_boost_strength,
+                           self.break_ties, self.relu, self.inplace)
             self.update_duty_cycle(x)
         else:
-            x = F.KWinners.apply(x, self.duty_cycle, self.k_inference,
-                                 self._cached_boost_strength)
+            x = F.kwinners(x, self.duty_cycle, self.k_inference,
+                           self._cached_boost_strength, self.break_ties, self.relu,
+                           self.inplace)
 
         return x
 
@@ -220,6 +242,15 @@ class KWinners(KWinnersBase):
         self.duty_cycle.mul_(period - batch_size)
         self.duty_cycle.add_(x.gt(0).sum(dim=0, dtype=torch.float))
         self.duty_cycle.div_(period)
+
+    def extra_repr(self):
+        s = super().extra_repr()
+        s += f", break_ties={self.break_ties}"
+        if self.relu:
+            s += ", relu=True"
+        if self.inplace:
+            s += ", inplace=True"
+        return s
 
 
 class KWinners2d(KWinnersBase):
@@ -260,6 +291,19 @@ class KWinners2d(KWinnersBase):
         at each location) or globally (across the whole input and across
         all channels).
     :type local: bool
+
+    :param break_ties:
+        Whether to use a strict k-winners. Using break_ties=False is faster but
+        may occasionally result in more than k active units.
+    :type break_ties: bool
+
+    :param relu:
+        This will simulate the effect of having a ReLU before the KWinners.
+    :type relu: bool
+
+    :param inplace:
+       Modify the input in-place.
+    :type inplace: bool
     """
 
     def __init__(
@@ -270,7 +314,10 @@ class KWinners2d(KWinnersBase):
         boost_strength=1.0,
         boost_strength_factor=0.9,
         duty_cycle_period=1000,
-        local=False
+        local=False,
+        break_ties=False,
+        relu=False,
+        inplace=False,
     ):
 
         super(KWinners2d, self).__init__(
@@ -283,12 +330,12 @@ class KWinners2d(KWinnersBase):
 
         self.channels = channels
         self.local = local
+        self.break_ties = break_ties
+        self.inplace = inplace
+        self.relu = relu
         if local:
             self.k = int(round(self.channels * self.percent_on))
             self.k_inference = int(round(self.channels * self.percent_on_inference))
-            self.kwinner_function = F.KWinners2dLocal.apply
-        else:
-            self.kwinner_function = F.KWinners2dGlobal.apply
 
         self.register_buffer("duty_cycle", torch.zeros((1, channels, 1, 1)))
 
@@ -301,12 +348,14 @@ class KWinners2d(KWinnersBase):
                 self.k_inference = int(round(self.n * self.percent_on_inference))
 
         if self.training:
-            x = self.kwinner_function(x, self.duty_cycle, self.k,
-                                      self._cached_boost_strength)
+            x = F.kwinners2d(x, self.duty_cycle, self.k,
+                             self._cached_boost_strength, self.local,
+                             self.break_ties, self.relu, self.inplace)
             self.update_duty_cycle(x)
         else:
-            x = self.kwinner_function(x, self.duty_cycle, self.k_inference,
-                                      self._cached_boost_strength)
+            x = F.kwinners2d(x, self.duty_cycle, self.k_inference,
+                             self._cached_boost_strength, self.local,
+                             self.break_ties, self.relu, self.inplace)
 
         return x
 
@@ -326,6 +375,11 @@ class KWinners2d(KWinnersBase):
         return entropy * self.n / self.channels
 
     def extra_repr(self):
-        return "channels={}, local={}, {}".format(
-            self.channels, self.local, super(KWinners2d, self).extra_repr()
-        )
+        s = (f"channels={self.channels}, local={self.local}"
+             f", break_ties={self.break_ties}")
+        if self.relu:
+            s += ", relu=True"
+        if self.inplace:
+            s += ", inplace=True"
+        s += ", {}".format(super().extra_repr())
+        return s

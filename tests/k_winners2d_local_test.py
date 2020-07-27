@@ -46,28 +46,63 @@ class KWinner2dLocalTest(unittest.TestCase):
         """
         x = self.x[0:1]
         n, c, h, w = x.shape
-        kw = KWinners2d(
-            percent_on=0.5,  # k=2
-            channels=c,
-            k_inference_factor=1.0,
-            boost_strength=0.0,
-            duty_cycle_period=1000,
-            local=True
-        )
-        kw.train(mode=False)
 
         expected = torch.zeros_like(x)
-
         expected[0, [2, 3], 0, 0] = x[0, [2, 3], 0, 0]
         expected[0, [1, 3], 0, 1] = x[0, [1, 3], 0, 1]
         expected[0, [0, 1], 1, 0] = x[0, [0, 1], 1, 0]
         expected[0, [2, 3], 1, 1] = x[0, [2, 3], 1, 1]
 
-        result = kw(x)
-        self.assertEqual(result.shape, expected.shape)
+        for break_ties in [True, False]:
+            with self.subTest(break_ties=break_ties):
+                kw = KWinners2d(
+                    percent_on=0.5,  # k=2
+                    channels=c,
+                    k_inference_factor=1.0,
+                    boost_strength=0.0,
+                    duty_cycle_period=1000,
+                    local=True,
+                    break_ties=break_ties,
+                )
+                kw.train(mode=False)
 
-        num_correct = (result == expected).sum()
-        self.assertEqual(num_correct, result.reshape(-1).size()[0])
+                result = kw(x)
+                self.assertEqual(result.shape, expected.shape)
+
+                num_correct = (result == expected).sum()
+                self.assertEqual(num_correct, result.reshape(-1).size()[0])
+
+    def test_k_winners2d_one_relu(self):
+        """
+        Equal duty cycle, boost_strength=0, percent_on=0.5, batch size=1, relu
+        """
+        x = self.x[0:1]
+        n, c, h, w = x.shape
+
+        expected = torch.zeros_like(x)
+        expected[0, [2, 3], 0, 0] = x[0, [2, 3], 0, 0]
+        expected[0, [1, 3], 0, 1] = x[0, [1, 3], 0, 1]
+        expected[0, [2, 3], 1, 1] = x[0, [2, 3], 1, 1]
+
+        for break_ties in [True, False]:
+            with self.subTest(break_ties=break_ties):
+                kw = KWinners2d(
+                    percent_on=0.5,  # k=2
+                    channels=c,
+                    k_inference_factor=1.0,
+                    boost_strength=0.0,
+                    duty_cycle_period=1000,
+                    local=True,
+                    break_ties=break_ties,
+                    relu=True,
+                )
+                kw.train(mode=False)
+
+                result = kw(x)
+                self.assertEqual(result.shape, expected.shape)
+
+                num_correct = (result == expected).sum()
+                self.assertEqual(num_correct, result.reshape(-1).size()[0])
 
     def test_k_winners2d_two(self):
         """
@@ -75,15 +110,7 @@ class KWinner2dLocalTest(unittest.TestCase):
         """
         x = self.x[0:2]
         n, c, h, w = x.shape
-        kw = KWinners2d(
-            percent_on=0.5,  # k=2
-            channels=c,
-            k_inference_factor=1.0,
-            boost_strength=0.0,
-            duty_cycle_period=1000,
-            local=True
-        )
-        kw.train(mode=False)
+
         expected = torch.zeros_like(x)
 
         expected[0, [2, 3], 0, 0] = x[0, [2, 3], 0, 0]
@@ -96,11 +123,61 @@ class KWinner2dLocalTest(unittest.TestCase):
         expected[1, [0, 3], 1, 0] = x[1, [0, 3], 1, 0]
         expected[1, [0, 2], 1, 1] = x[1, [0, 2], 1, 1]
 
-        result = kw(x)
-        self.assertEqual(result.shape, expected.shape)
+        for break_ties in [True, False]:
+            with self.subTest(break_ties=break_ties):
+                kw = KWinners2d(
+                    percent_on=0.5,  # k=2
+                    channels=c,
+                    k_inference_factor=1.0,
+                    boost_strength=0.0,
+                    duty_cycle_period=1000,
+                    local=True,
+                    break_ties=break_ties,
+                )
+                kw.train(mode=False)
 
-        num_correct = (result == expected).sum()
-        self.assertEqual(num_correct, result.reshape(-1).size()[0])
+                result = kw(x)
+                self.assertEqual(result.shape, expected.shape)
+
+                num_correct = (result == expected).sum()
+                self.assertEqual(num_correct, result.reshape(-1).size()[0])
+
+    def test_k_winners2d_two_relu(self):
+        """
+        Equal duty cycle, boost_strength=0, percent_on=0.5, batch size=2, relu
+        """
+        x = self.x[0:2]
+        n, c, h, w = x.shape
+
+        expected = torch.zeros_like(x)
+
+        expected[0, [2, 3], 0, 0] = x[0, [2, 3], 0, 0]
+        expected[0, [1, 3], 0, 1] = x[0, [1, 3], 0, 1]
+        expected[0, [2, 3], 1, 1] = x[0, [2, 3], 1, 1]
+
+        expected[1, [2, 3], 0, 0] = x[1, [2, 3], 0, 0]
+        expected[1, [1, 3], 0, 1] = x[1, [1, 3], 0, 1]
+        expected[1, [0, 2], 1, 1] = x[1, [0, 2], 1, 1]
+
+        for break_ties in [True, False]:
+            with self.subTest(break_ties=break_ties):
+                kw = KWinners2d(
+                    percent_on=0.5,  # k=2
+                    channels=c,
+                    k_inference_factor=1.0,
+                    boost_strength=0.0,
+                    duty_cycle_period=1000,
+                    local=True,
+                    break_ties=break_ties,
+                    relu=True,
+                )
+                kw.train(mode=False)
+
+                result = kw(x)
+                self.assertEqual(result.shape, expected.shape)
+
+                num_correct = (result == expected).sum()
+                self.assertEqual(num_correct, result.reshape(-1).size()[0])
 
     def test_k_winners2d_train(self):
         """
@@ -109,15 +186,6 @@ class KWinner2dLocalTest(unittest.TestCase):
         """
         x = self.x[0:2]
         n, c, h, w = x.shape
-        kw = KWinners2d(
-            percent_on=0.5,
-            channels=c,
-            boost_strength=1.0,
-            duty_cycle_period=10,
-            local=True
-        )
-
-        kw.train(mode=True)
 
         # Expectation due to boosting after the second training step
         expected = torch.zeros_like(x)
@@ -131,39 +199,40 @@ class KWinner2dLocalTest(unittest.TestCase):
         expected[1, [0, 3], 1, 0] = x[1, [0, 3], 1, 0]
         expected[1, [0, 2], 1, 1] = x[1, [0, 2], 1, 1]
 
-        result = kw(x)
-        result = kw(x)
-        self.assertTrue(result.eq(expected).all())
+        for break_ties in [True, False]:
+            with self.subTest(break_ties=break_ties):
+                kw = KWinners2d(
+                    percent_on=0.5,
+                    channels=c,
+                    boost_strength=1.0,
+                    duty_cycle_period=10,
+                    local=True,
+                    break_ties=break_ties,
+                )
 
-        # Expectation due to boosting after the fourth training step
-        expected_boosted = expected.clone()
-        expected_boosted[0, [0, 1], 1, 1] = 0
-        expected_boosted[0, [0, 2], 1, 1] = x[0, [0, 2], 1, 1]
+                kw.train(mode=True)
 
-        result = kw(x)
-        result = kw(x)
-        self.assertTrue(result.eq(expected_boosted).all())
+                result = kw(x)
+                result = kw(x)
+                self.assertTrue(result.eq(expected).all())
 
-    def test_k_winners2d_grad(self):
+                # Expectation due to boosting after the fourth training step
+                expected_boosted = expected.clone()
+                expected_boosted[0, [0, 1], 1, 1] = 0
+                expected_boosted[0, [0, 2], 1, 1] = x[0, [0, 2], 1, 1]
+
+                result = kw(x)
+                result = kw(x)
+                self.assertTrue(result.eq(expected_boosted).all())
+
+    def test_k_winners2d_local_grad(self):
         """
         Test gradient
         """
         x = self.x[0:2].clone().detach().requires_grad_(True)
         n, c, h, w = x.shape
-        kw = KWinners2d(
-            percent_on=0.5,  # k=2
-            channels=c,
-            k_inference_factor=1.0,
-            boost_strength=0.0,
-            duty_cycle_period=1000,
-            local=True
-        )
-        kw.train(mode=True)
-        y = kw(x)
 
         grad = torch.rand_like(x, requires_grad=True)
-        y.backward(grad)
-
         expected = torch.zeros_like(grad, requires_grad=False)
         expected[0, [2, 3], 0, 0] = grad[0, [2, 3], 0, 0]
         expected[0, [1, 3], 0, 1] = grad[0, [1, 3], 0, 1]
@@ -173,7 +242,26 @@ class KWinner2dLocalTest(unittest.TestCase):
         expected[1, [1, 3], 0, 1] = grad[1, [1, 3], 0, 1]
         expected[1, [0, 3], 1, 0] = grad[1, [0, 3], 1, 0]
         expected[1, [0, 2], 1, 1] = grad[1, [0, 2], 1, 1]
-        assert_allclose(x.grad, expected)
+
+        for break_ties in [True, False]:
+            with self.subTest(break_ties=break_ties):
+
+                kw = KWinners2d(
+                    percent_on=0.5,  # k=2
+                    channels=c,
+                    k_inference_factor=1.0,
+                    boost_strength=0.0,
+                    duty_cycle_period=1000,
+                    local=True,
+                    break_ties=break_ties,
+                )
+                kw.train(mode=True)
+                y = kw(x)
+
+                y.backward(grad)
+
+                assert_allclose(x.grad, expected)
+                x.grad.zero_()
 
 
 if __name__ == "__main__":
