@@ -33,11 +33,10 @@ def rezero_weights(m):
     Call using :meth:`torch.nn.Module.apply` after each epoch if required
     For example: ``m.apply(rezero_weights)``
 
-    :param m: s/SparseWeightsBase/HasRezeroWeights module
+    :param m: HasRezeroWeights module
     """
-    if isinstance(m, HasRezeroWeights) and isinstance(m, nn.Module):
-        if m.training:
-            m.rezero_weights()
+    if isinstance(m, HasRezeroWeights):
+        m.rezero_weights()
 
 
 def normalize_sparse_weights(m):
