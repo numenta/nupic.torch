@@ -33,11 +33,10 @@ def rezero_weights(m):
     Call using :meth:`torch.nn.Module.apply` after each epoch if required
     For example: ``m.apply(rezero_weights)``
 
-    :param m: SparseWeightsBase module
+    :param m: HasRezeroWeights module
     """
-    if isinstance(m, SparseWeightsBase):
-        if m.training:
-            m.rezero_weights()
+    if isinstance(m, HasRezeroWeights):
+        m.rezero_weights()
 
 
 def normalize_sparse_weights(m):
@@ -59,7 +58,15 @@ def normalize_sparse_weights(m):
             nn.init.uniform_(m.module.bias, -bound, bound)
 
 
-class SparseWeightsBase(nn.Module, metaclass=abc.ABCMeta):
+class HasRezeroWeights(metaclass=abc.ABCMeta):
+
+    @abc.abstractmethod
+    def rezero_weights(self):
+        """Set the previously selected weights to zero."""
+        raise NotImplementedError
+
+
+class SparseWeightsBase(nn.Module, HasRezeroWeights):
     """
     Base class for the all Sparse Weights modules.
 
@@ -95,11 +102,6 @@ class SparseWeightsBase(nn.Module, metaclass=abc.ABCMeta):
             DeprecationWarning,
         )
         return 1.0 - self.sparsity
-
-    @abc.abstractmethod
-    def rezero_weights(self):
-        """Set the previously selected weights to zero."""
-        raise NotImplementedError
 
     @property
     def weight(self):
