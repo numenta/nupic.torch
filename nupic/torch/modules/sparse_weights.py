@@ -107,6 +107,10 @@ class SparseWeightsBase(nn.Module, HasRezeroWeights):
     def weight(self):
         return self.module.weight
 
+    @property
+    def bias(self):
+        return self.module.bias
+
 
 class SparseWeights(SparseWeightsBase):
     """Enforce weight sparsity on linear module during training.
