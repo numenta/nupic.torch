@@ -157,7 +157,7 @@ class SparseWeights(SparseWeightsBase):
         self.rezero_weights()
 
     def rezero_weights(self):
-        self.module.weight.data[self.zero_mask.bool()] = 0
+        self.module.weight.data.masked_fill_(self.zero_mask.bool(), 0)
 
 
 class SparseWeights2d(SparseWeightsBase):
@@ -207,4 +207,4 @@ class SparseWeights2d(SparseWeightsBase):
         self.rezero_weights()
 
     def rezero_weights(self):
-        self.module.weight.data[self.zero_mask.bool()] = 0
+        self.module.weight.data.masked_fill_(self.zero_mask.bool(), 0)
