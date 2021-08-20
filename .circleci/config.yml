@@ -17,7 +17,7 @@
 # along with this program.  If not, see http://www.gnu.org/licenses.
 #
 # http://numenta.org/licenses/
-version: 2
+version: 2.1
 
 jobs:
   validate_contributor:
@@ -67,6 +67,9 @@ jobs:
           path: test_results
 
   test:
+    parameters:
+        torch_version:
+            type: string
     working_directory: ~/nta/nupic.torch
     docker:
       - image: circleci/python:3.6
@@ -75,6 +78,9 @@ jobs:
           at: ~/nta
       - restore_cache:
           key: pip-cache-v1-{{ arch }}-{{ checksum "requirements.txt" }}-{{ checksum "requirements-dev.txt" }}
+      - run:
+          name: Install pytorch
+          command: pip install torch==<< parameters.torch_version >>
       - run:
           name: Run python tests
           environment:
@@ -152,6 +158,9 @@ workflows:
             tags:
               only: *release_tags
       - test:
+          matrix:
+              parameters:
+                  torch_version: ["1.6.0", "1.7.1", "1.8.1", "1.9.0"]
           requires:
             - install_dependencies
           filters:

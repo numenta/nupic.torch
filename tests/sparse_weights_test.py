@@ -107,7 +107,7 @@ class TestSparseWeights(unittest.TestCase):
         sw = PrunableSparseWeights(lin, sparsity=0)
 
         self.assertTrue(torch.all(sw.off_mask == torch.zeros_like(sw.weight)))
-        sw.weight[:] = 1
+        sw.weight.data[:] = 1
         sw.rezero_weights()
         self.assertEqual(sw.weight.sum(), sw.weight.numel())
 
@@ -117,7 +117,7 @@ class TestSparseWeights(unittest.TestCase):
         sw = PrunableSparseWeights(lin, sparsity=1)
 
         self.assertTrue(torch.all(sw.off_mask == torch.ones_like(sw.weight)))
-        sw.weight[:] = 1
+        sw.weight.data[:] = 1
         sw.rezero_weights()
         self.assertEqual(sw.weight.sum(), 0)
 
@@ -127,7 +127,7 @@ class TestSparseWeights(unittest.TestCase):
         sw = PrunableSparseWeights2d(conv, sparsity=0)
 
         self.assertTrue(torch.all(sw.off_mask == torch.zeros_like(sw.weight)))
-        sw.weight[:] = 1
+        sw.weight.data[:] = 1
         sw.rezero_weights()
         self.assertEqual(sw.weight.sum(), sw.weight.numel())
 
@@ -137,7 +137,7 @@ class TestSparseWeights(unittest.TestCase):
         sw = PrunableSparseWeights2d(conv, sparsity=1)
 
         self.assertTrue(torch.all(sw.off_mask == torch.ones_like(sw.weight)))
-        sw.weight[:] = 1
+        sw.weight.data[:] = 1
         sw.rezero_weights()
         self.assertEqual(sw.weight.sum(), 0)
 
@@ -153,7 +153,7 @@ class TestSparseWeights(unittest.TestCase):
             [0, 0, 0, 0]
         ])
         self.assertEqual(sw.sparsity, 6 / 16)
-        sw.weight[:] = 1
+        sw.weight.data[:] = 1
         sw.rezero_weights()
         self.assertEqual(sw.weight.sum(), 10)
 
@@ -169,7 +169,7 @@ class TestSparseWeights(unittest.TestCase):
             [0, 0, 0, 0]
         ]).view(2, 2, 2, 2)
         self.assertEqual(sw.sparsity, 6 / 16)
-        sw.weight[:] = 1
+        sw.weight.data[:] = 1
         sw.rezero_weights()
         self.assertEqual(sw.weight.sum(), 10)
 
