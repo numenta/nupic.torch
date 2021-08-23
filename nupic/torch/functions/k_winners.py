@@ -21,8 +21,37 @@
 import torch
 
 
-def kwinners(x, duty_cycles, k, boost_strength, break_ties=False, relu=False,
-             inplace=False):
+@torch.jit.script
+def boost_activations(x, duty_cycles, boost_strength: float):
+    """
+    Boosting as documented in :meth:`kwinners` would compute
+      x * torch.exp((target_density - duty_cycles) * boost_strength)
+    but instead we compute
+      x * torch.exp(-boost_strength * duty_cycles)
+    which is equal to the former value times a positive constant, so it will
+    have the same ranked order.
+
+    :param x:
+      Current activity of each unit.
+
+    :param duty_cycles:
+      The averaged duty cycle of each unit.
+
+    :param boost_strength:
+      A boost strength of 0.0 has no effect on x.
+
+    :return:
+         A tensor representing the boosted activity
+    """
+    if boost_strength > 0.0:
+        return x.detach() * torch.exp(-boost_strength * duty_cycles)
+    else:
+        return x.detach()
+
+
+@torch.jit.script
+def kwinners(x, duty_cycles, k: int, boost_strength: float, break_ties: bool = False,
+             relu: bool = False, inplace: bool = False):
     """
     A simple K-winner take all function for creating layers with sparse output.
 
@@ -97,10 +126,10 @@ def kwinners(x, duty_cycles, k, boost_strength, break_ties=False, relu=False,
     if break_ties:
         indices = boosted.topk(k=k, dim=1, sorted=False)[1]
         off_mask = torch.ones_like(boosted, dtype=torch.bool)
-        off_mask.scatter_(1, indices, False)
+        off_mask.scatter_(1, indices, 0)
 
         if relu:
-            off_mask |= (boosted <= 0)
+            off_mask.logical_or_(boosted <= 0)
     else:
         threshold = boosted.kthvalue(x.shape[1] - k + 1, dim=1,
                                      keepdim=True)[0]
@@ -115,8 +144,10 @@ def kwinners(x, duty_cycles, k, boost_strength, break_ties=False, relu=False,
         return x.masked_fill(off_mask, 0)
 
 
-def kwinners2d(x, duty_cycles, k, boost_strength, local=True, break_ties=False,
-               relu=False, inplace=False):
+@torch.jit.script
+def kwinners2d(x, duty_cycles, k: int, boost_strength: float, local: bool = True,
+               break_ties: bool = False, relu: bool = False,
+               inplace: bool = False):
     """
     A K-winner take all function for creating Conv2d layers with sparse output.
 
@@ -170,16 +201,16 @@ def kwinners2d(x, duty_cycles, k, boost_strength, local=True, break_ties=False,
         if local:
             indices = boosted.topk(k=k, dim=1, sorted=False)[1]
             off_mask = torch.ones_like(boosted, dtype=torch.bool)
-            off_mask.scatter_(1, indices, False)
+            off_mask.scatter_(1, indices, 0)
         else:
             shape2 = (x.shape[0], x.shape[1] * x.shape[2] * x.shape[3])
             indices = boosted.view(shape2).topk(k, dim=1, sorted=False)[1]
             off_mask = torch.ones(shape2, dtype=torch.bool, device=x.device)
-            off_mask.scatter_(1, indices, False)
+            off_mask.scatter_(1, indices, 0)
             off_mask = off_mask.view(x.shape)
 
         if relu:
-            off_mask |= (boosted <= 0)
+            off_mask.logical_or_(boosted <= 0)
     else:
         if local:
             threshold = boosted.kthvalue(x.shape[1] - k + 1, dim=1,
@@ -197,33 +228,6 @@ def kwinners2d(x, duty_cycles, k, boost_strength, local=True, break_ties=False,
         return x.masked_fill_(off_mask, 0)
     else:
         return x.masked_fill(off_mask, 0)
-
-
-def boost_activations(x, duty_cycles, boost_strength):
-    """
-    Boosting as documented in :meth:`kwinners` would compute
-      x * torch.exp((target_density - duty_cycles) * boost_strength)
-    but instead we compute
-      x * torch.exp(-boost_strength * duty_cycles)
-    which is equal to the former value times a positive constant, so it will
-    have the same ranked order.
-
-    :param x:
-      Current activity of each unit.
-
-    :param duty_cycles:
-      The averaged duty cycle of each unit.
-
-    :param boost_strength:
-      A boost strength of 0.0 has no effect on x.
-
-    :return:
-         A tensor representing the boosted activity
-    """
-    if boost_strength > 0.0:
-        return x.detach() * torch.exp(-boost_strength * duty_cycles)
-    else:
-        return x.detach()
 
 
 __all__ = [
