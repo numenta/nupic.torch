@@ -69,7 +69,8 @@ setup(
         "Bug Reports": "https://github.com/numenta/nupic.torch/issues",
         "Source": "https://github.com/numenta/nupic.torch",
     },
-    setup_requires=requirements_dev,
     test_suite="tests",
     tests_require=["pytest>=4.4.0"],
+    extras_require={
+        "dev": requirements_dev},
 )
