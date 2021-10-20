@@ -15,3 +15,8 @@ nupic.torch.modules
     :members:
     :undoc-members:
     :show-inheritance:
+
+.. automodule:: nupic.torch.modules.prunable_sparse_weights
+    :members:
+    :undoc-members:
+    :show-inheritance:
