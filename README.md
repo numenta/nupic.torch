@@ -15,7 +15,7 @@ Interested in [contributing](CONTRIBUTING.md)?
 
 To install from local source code:
     
-    python setup.py develop
+    pip install -e .
 
 Or using conda:
 
@@ -25,7 +25,7 @@ Or using conda:
 
 To run all tests:
 
-    python setup.py test
+    pytest
 
 ## Examples
 

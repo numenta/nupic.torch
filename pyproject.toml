@@ -45,4 +45,4 @@ force_grid_wrap = 0
 use_parentheses = true
 line_length = 88
 known_first_party = ["nupic.torch"]
-
+known_third_party = ["tqdm", "librosa", "requests"]
