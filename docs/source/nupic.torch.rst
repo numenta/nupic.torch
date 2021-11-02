@@ -8,6 +8,13 @@ nupic.torch.duty_cycle_metrics
     :undoc-members:
     :show-inheritance:
 
+nupic.torch.compatibility
+------------------------------
+.. automodule:: nupic.torch.compatibility
+    :members:
+    :undoc-members:
+    :show-inheritance:
+
 Subpackages
 -----------
 
