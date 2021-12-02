@@ -24,6 +24,9 @@ jobs:
     working_directory: ~/nta/nupic.torch
     machine: true
     steps:
+      - run:
+          name: Check if this PR was create from a fork
+          command: test -n "${CIRCLE_PR_USERNAME}" -o "${CIRCLE_BRANCH}" = "master"
       - checkout
       - run:
           name: Validate contributor license
