@@ -1,4 +1,4 @@
-sphinx>=2,<3
+docutils>=0.17
+sphinx>=2
 sphinx-autobuild
-recommonmark
-m2r
+myst-parser

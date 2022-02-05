@@ -1,5 +1,6 @@
 
-.. mdinclude:: ../../README.md
+.. include:: ../../README.md
+   :parser: myst_parser.sphinx_
 
 Contents
 ========
@@ -8,6 +9,7 @@ Contents
 
    modules
    license
+   todo
 
 Indices and tables
 ==================
