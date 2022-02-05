@@ -50,17 +50,19 @@ release = version
 
 
 # -- General configuration ---------------------------------------------------
-needs_sphinx = "2.0"
 
 # Add any Sphinx extension module names here, as strings. They can be
 # extensions coming with Sphinx (named "sphinx.ext.*") or your custom
 # ones.
 extensions = [
+    "sphinx.ext.napoleon",
     "sphinx.ext.autodoc",
-    "sphinx.ext.mathjax",
-    "sphinx.ext.viewcode",
     "sphinx.ext.autosummary",
-    "m2r",
+    "sphinx.ext.intersphinx",
+    "sphinx.ext.mathjax",
+    "sphinx.ext.todo",
+    "sphinx.ext.viewcode",
+    "myst_parser",
 ]
 
 # Add any paths that contain templates here, relative to this directory.
@@ -74,8 +76,10 @@ exclude_patterns = ["_build", "Thumbs.db", ".DS_Store"]
 # The suffix(es) of source filenames.
 # You can specify multiple suffix as a list of string:
 #
-source_suffix = [".rst", ".md"]
-
+source_suffix = {
+    ".rst": "restructuredtext",
+    ".md": "markdown",
+}
 
 # -- Options for HTML output -------------------------------------------------
 
@@ -93,7 +97,7 @@ html_theme_options = {
     "fixed_sidebar": True,
     "logo": "logo.svg",
     "logo_name": True,
-    "description": "version {}".format(version),
+    "description": f"version {version}",
     "github_banner": True,
     "github_button": True,
     "github_user": "numenta",
@@ -114,7 +118,40 @@ autodoc_mock_imports = [
 # unit titles (such as .. function::).
 add_module_names = False
 
+# -- Options for intersphinx extension ---------------------------------------
+
+# Example configuration for intersphinx: refer to the Python standard library.
+intersphinx_mapping = {
+    "numpy": ("https://numpy.org/doc/stable/", None),
+    "python": ("https://docs.python.org/3", None),
+    "torch": ("https://pytorch.org/docs/stable/", None),
+    "torchvision": ("https://pytorch.org/vision/stable/", None),
+}
 # -- Options for todo extension ----------------------------------------------
 
 # If true, `todo` and `todoList` produce output, else they produce nothing.
 todo_include_todos = True
+todo_link_only = True
+
+# -- apidoc --------------------------------------------------------------
+
+
+def run_apidoc(_):
+    from sphinx.ext.apidoc import main
+    cur_dir = os.path.abspath(os.path.dirname(__file__))
+    main(
+        [
+            "-o",
+            f"{cur_dir}",
+            "-t",
+            f"{cur_dir}/_templates",
+            "-f",
+            "-M",
+            "--implicit-namespaces",
+            f"{cur_dir}/../../src/nupic",
+        ]
+    )
+
+
+def setup(app):
+    app.connect("builder-inited", run_apidoc)
