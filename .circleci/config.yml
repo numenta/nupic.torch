@@ -162,7 +162,7 @@ workflows:
       - test:
           matrix:
               parameters:
-                  torch_version: ["1.6.0", "1.7.1", "1.8.1", "1.9.0"]
+                  torch_version: ["1.6.0", "1.7.1", "1.8.1", "1.9.1", "1.10.2"]
           requires:
             - install_dependencies
           filters:
