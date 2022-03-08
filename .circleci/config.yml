@@ -93,6 +93,22 @@ jobs:
       - store_test_results:
           path: test_results
 
+  coverage:
+    working_directory: ~/nta/nupic.torch
+    docker:
+      - image: circleci/python:3.7
+    steps:
+      - attach_workspace:
+          at: ~/nta
+      - restore_cache:
+          key: pip-cache-v1-{{ arch }}-{{ checksum "setup.cfg" }}
+      - run:
+          name: Run python tests with coverage
+          command: |
+            pytest -ra -n auto --cov=nupic.torch --cov-report html --cov-report term --cov-branch
+      - store_artifacts:
+          path: htmlcov
+
   build:
     working_directory: ~/nta/nupic.torch
     docker:
@@ -159,6 +175,12 @@ workflows:
           filters:
             tags:
               only: *release_tags
+      - coverage:
+          requires:
+            - install_dependencies
+          filters:
+            tags:
+              only: *release_tags
       - test:
           matrix:
               parameters:
@@ -175,6 +197,7 @@ workflows:
           requires:
             - check_style
             - test
+            - coverage
       - deploy:
           context: deploy-pypi
           requires:
