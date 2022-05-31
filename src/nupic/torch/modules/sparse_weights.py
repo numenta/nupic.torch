@@ -180,12 +180,17 @@ class SparseWeights2d(SparseWeightsBase):
     """Enforce weight sparsity on CNN modules Sample usage:
 
       model = nn.Conv2d(in_channels, out_channels, kernel_size, ...)
-      model = SparseWeights2d(model, 0.4)
+      model = SparseWeights2d(model, sparsity=0.4)
 
     :param module:
       The module to sparsify the weights
+    :param weight_sparsity:
+      Pct of weights that are NON-ZERO in the layer. Also equal to 1-sparsity
+      **Please note this is the first positional parameter for backwards
+      compatibility**
     :param sparsity:
-      Pct of weights that are zero in the layer.
+      Pct of weights that are ZERO in the layer
+      Accepts either sparsity or weight_sparsity, but not both at a time
     :param allow_extremes:
       Allow values sparsity=0 and sparsity=1. These values are often a sign that
       there is a bug in the configuration, because they lead to Identity and
