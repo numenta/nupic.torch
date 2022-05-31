@@ -118,12 +118,16 @@ class SparseWeights(SparseWeightsBase):
     Sample usage:
 
       model = nn.Linear(784, 10)
-      model = SparseWeights(model, 0.4)
+      model = SparseWeights(model, sparsity=0.4)
 
     :param module:
       The module to sparsify the weights
+    :param weight_sparsity:
+      Pct of weights that are NON-ZERO in the layer. Also equal to 1-sparsity
+      **Please note this is the first positional parameter for backwards
+      compatibility**
     :param sparsity:
-      Pct of weights that are zero in the layer.
+      Pct of weights that are ZERO in the layer.
     :param allow_extremes:
       Allow values sparsity=0 and sparsity=1. These values are often a sign that
       there is a bug in the configuration, because they lead to Identity and
@@ -134,6 +138,17 @@ class SparseWeights(SparseWeightsBase):
     def __init__(self, module, weight_sparsity=None, sparsity=None,
                  allow_extremes=False):
         assert len(module.weight.shape) == 2, "Should resemble a nn.Linear"
+
+        # Add checks to ensure there is no incompatibility
+        if sparsity is None:
+            sparsity = 1 - weight_sparsity
+        if weight_sparsity is None:
+            weight_sparsity = 1 - sparsity
+        if sparsity is not None and weight_sparsity is not None:
+            (assert (1 - sparsity) == weight_sparsity,
+            "Conflicting sparsity levels defined by the params weight sparsity:"
+            f" {weight_sparsity:.4f} and sparsity: {sparsity:.4f}"
+
         super(SparseWeights, self).__init__(
             module, weight_sparsity=weight_sparsity, sparsity=sparsity
         )
