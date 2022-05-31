@@ -150,16 +150,6 @@ class SparseWeights(SparseWeightsBase):
                  allow_extremes=False):
         assert len(module.weight.shape) == 2, "Should resemble a nn.Linear"
 
-        if sparsity is None:
-            sparsity = 1 - weight_sparsity
-        if weight_sparsity is None:
-            weight_sparsity = 1 - sparsity
-        if sparsity is not None and weight_sparsity is not None:
-            assert (1 - sparsity) == weight_sparsity, (
-                "Conflicting sparsity levels defined by the params weight "
-                f"sparsity: {weight_sparsity:.4f} and sparsity: {sparsity:.4f}"
-            )
-
         super(SparseWeights, self).__init__(
             module, weight_sparsity=weight_sparsity, sparsity=sparsity
         )
