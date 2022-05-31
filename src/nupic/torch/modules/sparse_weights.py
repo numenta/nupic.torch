@@ -145,9 +145,10 @@ class SparseWeights(SparseWeightsBase):
         if weight_sparsity is None:
             weight_sparsity = 1 - sparsity
         if sparsity is not None and weight_sparsity is not None:
-            (assert (1 - sparsity) == weight_sparsity,
-            "Conflicting sparsity levels defined by the params weight sparsity:"
-            f" {weight_sparsity:.4f} and sparsity: {sparsity:.4f}"
+            assert (1 - sparsity) == weight_sparsity, (
+                "Conflicting sparsity levels defined by the params weight "
+                f"sparsity: {weight_sparsity:.4f} and sparsity: {sparsity:.4f}"
+            )
 
         super(SparseWeights, self).__init__(
             module, weight_sparsity=weight_sparsity, sparsity=sparsity
