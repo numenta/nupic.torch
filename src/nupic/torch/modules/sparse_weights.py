@@ -72,13 +72,23 @@ class SparseWeightsBase(nn.Module, HasRezeroWeights):
 
     :param module:
       The module to sparsify the weights
+    :param weight_sparsity:
+      Pct of weights that are NON-ZERO in the layer. Also equal to 1-sparsity
+      **Please note this is the first positional parameter for backwards
+      compatibility**
     :param sparsity:
-      Pct of weights that are zero in the layer.
+      Pct of weights that are ZERO in the layer
+      Accepts either sparsity or weight_sparsity, but not both at a time
     """
 
     def __init__(self, module, weight_sparsity=None, sparsity=None):
         super(SparseWeightsBase, self).__init__()
         assert weight_sparsity is not None or sparsity is not None
+        assert not(weight_sparsity and sparsity), (
+            "Both `weight_sparsity` and `sparsity` were passed as arguments, "
+            "but only one of those two can be defined at a time."
+        )
+
         if weight_sparsity is not None and sparsity is None:
             sparsity = 1.0 - weight_sparsity
             warnings.warn(
@@ -127,7 +137,8 @@ class SparseWeights(SparseWeightsBase):
       **Please note this is the first positional parameter for backwards
       compatibility**
     :param sparsity:
-      Pct of weights that are ZERO in the layer.
+      Pct of weights that are ZERO in the layer
+      Accepts either sparsity or weight_sparsity, but not both at a time
     :param allow_extremes:
       Allow values sparsity=0 and sparsity=1. These values are often a sign that
       there is a bug in the configuration, because they lead to Identity and
@@ -139,7 +150,6 @@ class SparseWeights(SparseWeightsBase):
                  allow_extremes=False):
         assert len(module.weight.shape) == 2, "Should resemble a nn.Linear"
 
-        # Add checks to ensure there is no incompatibility
         if sparsity is None:
             sparsity = 1 - weight_sparsity
         if weight_sparsity is None:
