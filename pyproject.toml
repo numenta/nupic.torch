@@ -49,7 +49,7 @@ known_third_party = ["tqdm", "librosa", "requests"]
 
 [tool.pytest.ini_options]
 minversion = '6.0'
-addopts = '-ra -n auto'
+addopts = '-ra'
 testpaths = [
     'tests',
 ]
