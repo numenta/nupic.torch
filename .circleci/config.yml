@@ -105,7 +105,7 @@ jobs:
       - run:
           name: Run python tests with coverage
           command: |
-            pytest -ra -n auto --cov=nupic.torch --cov-report html --cov-report term --cov-branch
+            pytest -ra --cov=nupic.torch --cov-report html --cov-report term --cov-branch
       - store_artifacts:
           path: htmlcov
 
@@ -184,7 +184,7 @@ workflows:
       - test:
           matrix:
               parameters:
-                  torch_version: ["1.6.0", "1.7.1", "1.8.1", "1.9.1", "1.10.2", "1.11.0", "1.12.1"]
+                  torch_version: ["1.6.0", "1.7.1", "1.8.1", "1.9.1", "1.10.2", "1.11.0", "1.12.1", "1.13"]
           requires:
             - install_dependencies
           filters:
