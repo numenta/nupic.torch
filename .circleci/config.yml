@@ -38,7 +38,7 @@ jobs:
   install_dependencies:
     working_directory: ~/nta/nupic.torch
     docker:
-      - image: circleci/python:3.7
+      - image: circleci/python:3.8
     steps:
       - attach_workspace:
           at: ~/nta
@@ -54,7 +54,7 @@ jobs:
   check_style:
     working_directory: ~/nta/nupic.torch
     docker:
-      - image: circleci/python:3.7
+      - image: circleci/python:3.8
     steps:
       - attach_workspace:
           at: ~/nta
@@ -74,7 +74,7 @@ jobs:
             type: string
     working_directory: ~/nta/nupic.torch
     docker:
-      - image: circleci/python:3.7
+      - image: circleci/python:3.8
     steps:
       - attach_workspace:
           at: ~/nta
@@ -96,7 +96,7 @@ jobs:
   coverage:
     working_directory: ~/nta/nupic.torch
     docker:
-      - image: circleci/python:3.7
+      - image: circleci/python:3.8
     steps:
       - attach_workspace:
           at: ~/nta
@@ -112,7 +112,7 @@ jobs:
   build:
     working_directory: ~/nta/nupic.torch
     docker:
-      - image: circleci/python:3.7
+      - image: circleci/python:3.8
     steps:
       - attach_workspace:
           at: ~/nta
@@ -134,7 +134,7 @@ jobs:
   deploy:
     working_directory: ~/nta/nupic.torch
     docker:
-      - image: circleci/python:3.7
+      - image: circleci/python:3.8
     steps:
       - attach_workspace:
           at: ~/nta
@@ -184,7 +184,16 @@ workflows:
       - test:
           matrix:
               parameters:
-                  torch_version: ["1.6.0", "1.7.1", "1.8.1", "1.9.1", "1.10.2", "1.11.0", "1.12.1", "1.13"]
+                  torch_version: 
+                    - "1.6.0"
+                    - "1.7.1"
+                    - "1.8.1"
+                    - "1.9.1"
+                    - "1.10.2"
+                    - "1.11.0"
+                    - "1.12.1"
+                    - "1.13.1"
+                    - "2.0.0"
           requires:
             - install_dependencies
           filters:
