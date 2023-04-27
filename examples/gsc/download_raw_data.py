@@ -71,7 +71,26 @@ def extract_tarball():
     with tarfile.open(TARFILEPATH) as tar:
         # This is slow to count.
         tot = 64764  # len(list(tar.getnames()))
-        tar.extractall(EXTRACTPATH,
+        def is_within_directory(directory, target):
+            
+            abs_directory = os.path.abspath(directory)
+            abs_target = os.path.abspath(target)
+        
+            prefix = os.path.commonprefix([abs_directory, abs_target])
+            
+            return prefix == abs_directory
+        
+        def safe_extract(tar, path=".", members=None, *, numeric_owner=False):
+        
+            for member in tar.getmembers():
+                member_path = os.path.join(path, member.name)
+                if not is_within_directory(path, member_path):
+                    raise Exception("Attempted Path Traversal in Tar File")
+        
+            tar.extractall(path, members, numeric_owner=numeric_owner) 
+            
+        
+        safe_extract(tar, EXTRACTPATH, members=tqdm(tardesc="Extracting",total=tot,unit="file",unit_scale="True",leave="False"))
                        members=tqdm(tar, desc="Extracting", total=tot,
                                     unit="file", unit_scale=True, leave=False))
 
